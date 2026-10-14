@@ -1,8 +1,9 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
@@ -44,13 +45,15 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/mes-mains" element={<MyHands />} />
-        <Route path="/scanner" element={<Scanner />} />
-        <Route path="/lecture/:scanId" element={<Reading />} />
-        <Route path="/compatibilite" element={<Compatibility />} />
-        <Route path="/apprendre" element={<Learn />} />
-        <Route path="/grimoire" element={<Grimoire />} />
-        <Route path="/mon-compte" element={<Account />} />
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+          <Route path="/mes-mains" element={<MyHands />} />
+          <Route path="/scanner" element={<Scanner />} />
+          <Route path="/lecture/:scanId" element={<Reading />} />
+          <Route path="/compatibilite" element={<Compatibility />} />
+          <Route path="/apprendre" element={<Learn />} />
+          <Route path="/grimoire" element={<Grimoire />} />
+          <Route path="/mon-compte" element={<Account />} />
+        </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
