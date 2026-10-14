@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chiromancie IA — Test des lignes palmaires</title>
+<style>
+body{font:16px system-ui,sans-serif;background:#15101c;color:#f4e8cf;max-width:900px;margin:24px auto;padding:16px}
+h1{font-size:1.5rem}p{line-height:1.5}button,input{font:inherit;padding:10px;margin:8px 0}
+button{background:#d7b56b;color:#201322;border:0;border-radius:8px;cursor:pointer}
+canvas{width:100%;height:auto;border-radius:12px} .frame{max-width:600px;position:relative}
+#overlay{position:absolute;top:0;left:0;pointer-events:none}
+#status{padding:12px 0} .legend{display:flex;gap:20px;flex-wrap:wrap}
+</style></head><body>
+<h1>Test du modèle spécialisé — lignes de la main</h1>
+<p>Choisis une photo de paume bien cadrée. Le modèle détecte les lignes automatiquement, sans points à placer. Le premier chargement télécharge environ 11 Mo.</p>
+<input type="file" id="file" accept="image/*">
+<p id="status">Chargement du modèle…</p>
+<div class="frame"><canvas id="base" width="512" height="512"></canvas><canvas id="overlay" width="512" height="512"></canvas></div>
+<p class="legend"><span>🔴 Cœur</span><span>🔵 Tête</span><span>🟢 Vie</span></p>
+<p>Essai indépendant : aucun changement au moteur de l'application principale. La photo reste dans le navigateur.</p>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<script type="module">
+import {PalmLineSegmenter} from '/palm-lines/palmLines.js';
+const file=document.querySelector('#file'),status=document.querySelector('#status');
+const base=document.querySelector('#base').getContext('2d'),overlay=document.querySelector('#overlay').getContext('2d');
+let segmenter;
+try {
+  segmenter=await PalmLineSegmenter.create(window.ort,{
+    modelUrl:'https://cdn.jsdelivr.net/gh/samuelwbarber/palm-line-reader@main/models/student_fp16.onnx',
+    executionProviders:['wasm']
+  });
+  status.textContent='Modèle prêt. Choisis une photographie.';
+} catch(err){status.textContent='Erreur de chargement du modèle : '+err.message;}
+file.addEventListener('change',async()=>{
+  const f=file.files?.[0];if(!f||!segmenter)return;
+  status.textContent='Analyse en cours…';overlay.clearRect(0,0,512,512);
+  const url=URL.createObjectURL(f);const img=new Image();
+  try {
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});
+    base.drawImage(img,0,0,512,512);
+    const {mask}=await segmenter.segment(img);
+    overlay.putImageData(new ImageData(segmenter.maskToRGBA(mask,200),512,512),0,0);
+    const counts=[0,0,0,0];for(const p of mask)counts[p]++;
+    status.textContent='Analyse terminée. Pixels détectés — cœur : '+counts[1]+', tête : '+counts[2]+', vie : '+counts[3]+'.';
+  } catch(err){status.textContent='Erreur pendant l’analyse : '+err.message;}
+  finally{URL.revokeObjectURL(url);}
+});
+</script></body></html>
