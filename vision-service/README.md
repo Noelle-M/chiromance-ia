@@ -34,3 +34,17 @@ ne remplace donc pas encore `analyzeHand` et n'est pas connecté au frontend.
 **Sécurité** : déployer derrière HTTPS avec authentification, contrôle de débit
 et limitation de taille des requêtes avant d'exposer ce service publiquement.
 Les photos ne sont pas enregistrées par ce prototype.
+
+## Limiter l'analyse à une zone de paume
+
+Les deux routes acceptent un champ multipart facultatif `roi` : un polygone JSON
+composé de paires `[x,y]` normalisées entre 0 et 1, relatives à l'image envoyée.
+Exemple :
+
+```bash
+curl -F "photo=@paume.jpg" -F 'roi=[[0.2,0.4],[0.75,0.4],[0.8,0.8],[0.2,0.85]]' http://127.0.0.1:8000/preview --output plis-paume.png
+```
+
+Cette zone doit être délimitée sur la photographie d'origine, sans les bordures
+de l'application. L'option est **manuelle** : elle ne prétend pas détecter la
+paume automatiquement. Sans `roi`, le service examine toujours l'image entière.
