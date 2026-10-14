@@ -23,6 +23,7 @@ const validCoordinates = (coordinates) => {
 export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
   const [selected, setSelected] = useState(null);
   const [showLabels, setShowLabels] = useState(true);
+  const [showTraces, setShowTraces] = useState(true);
   const visibleObservations = observations.filter((o) => validCoordinates(o.coordinates));
 
   const handleSelect = (obs) => {
@@ -37,7 +38,7 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
       ) : (
         <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-sm">Photo indisponible</div>
       )}
-      {photoUrl && <svg
+      {photoUrl && showTraces && <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
         className="absolute inset-0 w-full h-full"
@@ -70,7 +71,7 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
         })}
       </svg>}
 
-      {photoUrl && showLabels &&
+      {photoUrl && showTraces && showLabels &&
         visibleObservations.map((o, i) => {
           if (!o.coordinates?.length) return null;
           const mid = o.coordinates[Math.floor(o.coordinates.length / 2)];
@@ -86,13 +87,19 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
           );
         })}
 
-      {photoUrl && <div className="absolute top-2 right-2">
+      {photoUrl && <div className="absolute top-2 right-2 flex flex-col items-end gap-2">
         <button
+          onClick={() => setShowTraces((value) => !value)}
+          className="text-[10px] text-primary bg-background/85 backdrop-blur px-2 py-1 rounded-full border border-primary/30"
+        >
+          {showTraces ? "Voir la photo originale" : "Afficher les tracés"}
+        </button>
+        {showTraces && <button
           onClick={() => setShowLabels((s) => !s)}
           className="text-[10px] text-primary bg-background/70 backdrop-blur px-2 py-1 rounded-full border border-primary/30"
         >
           {showLabels ? "Masquer les noms" : "Afficher les noms"}
-        </button>
+        </button>}
       </div>}
 
       <style>{`@keyframes draw-line { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }`}</style>
