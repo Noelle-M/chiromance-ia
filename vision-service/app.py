@@ -320,3 +320,13 @@ def palm_lines_module():
     from pathlib import Path
     source = (Path(__file__).resolve().parent / "palmLines.js").read_text(encoding="utf-8")
     return Response(source, media_type="text/javascript")
+
+
+@app.get("/palm-lines/model")
+def palm_lines_model():
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    model = Path(__file__).resolve().parent / "models" / "student_fp16.onnx"
+    if not model.is_file() or model.stat().st_size < 1_000_000:
+        raise HTTPException(404, "Modèle ONNX absent : télécharger student_fp16.onnx dans vision-service/models")
+    return FileResponse(model, media_type="application/octet-stream")
