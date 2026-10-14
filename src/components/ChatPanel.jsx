@@ -35,7 +35,7 @@ export default function ChatPanel({ messages, onSend, busy, blocked, remaining, 
       <div className="space-y-3 mb-3">
         {messages.length === 0 && !blocked && (
           <p className="text-sm text-muted-foreground">
-            Posez une question, demandez une précision ou réagissez à une interprétation. La chiromancienne garde le contexte de votre main.
+            Vous pouvez répondre à la chiromancienne, réagir à sa lecture ou lui poser une question. Elle se souvient de votre échange.
           </p>
         )}
         {messages.map((m) => (
@@ -70,15 +70,16 @@ export default function ChatPanel({ messages, onSend, busy, blocked, remaining, 
         </div>
       ) : (
         <>
+          <p className="text-xs text-muted-foreground mb-2">Répondez ici à la lecture ci-dessus, ou posez votre propre question. Chaque message envoyé compte pour une question gratuite.</p>
           <form onSubmit={submit} className="flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Votre question…"
+              placeholder="Votre réponse ou votre question…"
               className="flex-1 bg-input border border-border rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
             />
             <button type="submit" disabled={busy || !input.trim()} className="btn-gold px-4 flex items-center gap-1">
-              <Send size={14} />
+              <Send size={14} /> <span className="text-xs">Envoyer</span>
             </button>
           </form>
 
