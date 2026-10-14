@@ -4,9 +4,10 @@ This extracts image-supported candidate crease pixels; it does NOT reliably
 identify traditional palmistry lines. No invented polylines are returned.
 """
 from io import BytesIO
+import json
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -26,7 +27,34 @@ def decode_image(raw: bytes):
     return cv2.cvtColor(np.asarray(pil), cv2.COLOR_RGB2BGR)
 
 
-def crease_candidates(image):
+def palm_roi(image, roi_json=None):
+    """Optional manually reviewed polygon in normalized image coordinates.
+
+    Automatic palm segmentation is not implemented yet. Without a polygon,
+    the entire image remains eligible and results must be treated as diagnostic.
+    """
+    height, width = image.shape[:2]
+    mask = np.full((height, width), 255, dtype=np.uint8)
+    if not roi_json:
+        return mask
+    try:
+        points = json.loads(roi_json)
+        if not isinstance(points, list) or not 3 <= len(points) <= 40:
+            raise ValueError("Polygon must have 3 to 40 points")
+        if any(not isinstance(p, list) or len(p) != 2 or
+               any(not isinstance(v, (int, float)) or not np.isfinite(v) or v < 0 or v > 1 for v in p)
+               for p in points):
+            raise ValueError("Coordinates must be normalized pairs")
+        polygon = np.rint(np.array(points) * [width - 1, height - 1]).astype(np.int32)
+    except (ValueError, TypeError, OverflowError) as exc:
+        raise HTTPException(422, f"Zone de paume invalide: {exc}")
+    mask[:] = 0
+    cv2.fillPoly(mask, [polygon], 255)
+    mask = cv2.erode(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13)))
+    return mask
+
+
+def crease_candidates(image, roi=None):
     """Highlight dark, locally elongated creases using image evidence only.
 
     The output is a diagnostic mask, NOT a set of named palm lines.
@@ -41,8 +69,13 @@ def crease_candidates(image):
         masks.append(cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, kernel))
     response = np.maximum.reduce(masks)
     response = cv2.GaussianBlur(response, (3, 3), 0)
-    threshold = max(15, float(np.percentile(response, 91)))
-    mask = np.uint8(response >= threshold) * 255
+    if roi is None:
+        roi = np.full(gray.shape, 255, dtype=np.uint8)
+    selected = response[roi > 0]
+    if selected.size == 0:
+        raise HTTPException(422, 'Zone de paume vide')
+    threshold = max(12, float(np.percentile(selected, 88 if np.count_nonzero(roi) < roi.size else 91)))
+    mask = np.uint8((response >= threshold) & (roi > 0)) * 255
     # Remove isolated specks, retain longer connected evidence.
     count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
     filtered = np.zeros_like(mask)
@@ -59,10 +92,10 @@ def health():
 
 
 @app.post("/analyze")
-async def analyze(photo: UploadFile = File(...)):
+async def analyze(photo: UploadFile = File(...), roi: str | None = Form(None)):
     raw = await photo.read(MAX_BYTES + 1)
     image = decode_image(raw)
-    mask = crease_candidates(image)
+    mask = crease_candidates(image, palm_roi(image, roi))
     height, width = mask.shape
     count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
     components = []
@@ -78,6 +111,7 @@ async def analyze(photo: UploadFile = File(...)):
     components.sort(key=lambda c: c["pixel_area"], reverse=True)
     return {
         "status": "experimental",
+        "roi_mode": "manual" if roi else "full_image",
         "image_width": width, "image_height": height,
         "candidate_regions": components[:80],
         "lines": [],
@@ -91,7 +125,7 @@ async def analyze(photo: UploadFile = File(...)):
 
 
 @app.post("/preview")
-async def preview(photo: UploadFile = File(...)):
+async def preview(photo: UploadFile = File(...), roi: str | None = Form(None)):
     image = decode_image(await photo.read(MAX_BYTES + 1))
     mask = crease_candidates(image)
     overlay = image.copy()
