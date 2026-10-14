@@ -22,13 +22,15 @@ import {PalmLineSegmenter} from '/palm-lines/palmLines.js';
 const file=document.querySelector('#file'),status=document.querySelector('#status');
 const base=document.querySelector('#base').getContext('2d'),overlay=document.querySelector('#overlay').getContext('2d');
 let segmenter;
+const timer=setTimeout(()=>{if(!segmenter)status.textContent='Chargement trop long. Vérifie que le modèle a bien été téléchargé dans vision-service/models.';},25000);
 try {
   segmenter=await PalmLineSegmenter.create(window.ort,{
-    modelUrl:'https://cdn.jsdelivr.net/gh/samuelwbarber/palm-line-reader@main/models/student_fp16.onnx',
+    modelUrl:'/palm-lines/model',
     executionProviders:['wasm']
   });
+  clearTimeout(timer);
   status.textContent='Modèle prêt. Choisis une photographie.';
-} catch(err){status.textContent='Erreur de chargement du modèle : '+err.message;}
+} catch(err){clearTimeout(timer);status.textContent='Erreur de chargement du modèle : '+err.message;}
 file.addEventListener('change',async()=>{
   const f=file.files?.[0];if(!f||!segmenter)return;
   status.textContent='Analyse en cours…';overlay.clearRect(0,0,512,512);
