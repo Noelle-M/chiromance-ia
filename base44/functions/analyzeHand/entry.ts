@@ -92,7 +92,7 @@ export default async function(req) {
     let qualityNotes = '';
     let palmShape = '';
     let fingerProportions = '';
-    let firstQualityOk = true;
+    let handDetected = true;
 
     for (const s of signed) {
       const visionRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -101,13 +101,13 @@ export default async function(req) {
         response_json_schema: visionSchema,
       });
 
-      if (!visionRes.quality_ok) firstQualityOk = false;
       qualityNotes += (qualityNotes ? ' | ' : '') + (visionRes.quality_notes || '');
       if (s.hand === 'right') {
         palmShape = visionRes.palm_shape || '';
         fingerProportions = visionRes.finger_proportions || '';
+        if (visionRes.hand_detected === 'none' || visionRes.hand_detected === 'absente') handDetected = false;
       }
-      const lines = visionRes.lines || [];
+      const lines = Array.isArray(visionRes.lines) ? visionRes.lines : [];
       for (const ln of lines) {
         if (!ln.coordinates || ln.coordinates.length < 2) continue;
         allObservations.push({
@@ -124,9 +124,10 @@ export default async function(req) {
       }
     }
 
-    if (!firstQualityOk) {
-      await base44.entities.Scan.update(scanId, { status: 'failed', quality_notes: qualityNotes, error_message: 'Photo inexploitable' });
-      return Response.json({ error: 'Photo inexploitable', quality_notes: qualityNotes }, { status: 422 });
+    // Only hard-reject when no hand at all is visible. Quality notes are advisory otherwise.
+    if (!handDetected && allObservations.length === 0) {
+      await base44.entities.Scan.update(scanId, { status: 'failed', quality_notes: qualityNotes, error_message: 'Aucune main détectée' });
+      return Response.json({ error: 'Aucune main détectée sur la photo. Reprenez la photo paume face à l\'objectif.', quality_notes: qualityNotes }, { status: 422 });
     }
 
     // Save observations

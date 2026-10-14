@@ -51,12 +51,15 @@ export default function Scanner() {
         right_hand_photo: urisRef.current.right,
         left_hand_photo: urisRef.current.left || undefined,
       });
-      const res = await base44.functions.invoke('analyzeHand', { scan_id: scan.id });
+      const res = await base44.functions.invoke('analyzeHand', { scan_id: scan.id }).catch((err) => {
+        const msg = err?.response?.data?.error || err?.message;
+        throw new Error(msg || "L'analyse a échoué.");
+      });
       if (res?.data?.error) throw new Error(res.data.error);
       navigate(`/lecture/${scan.id}`);
     } catch (e) {
       setAnalyzing(false);
-      setError(e.message || "L'analyse a échoué. Vous pouvez réessayer.");
+      setError(e.message || "L'analyse a échoué. Vous pouvez reprendre la photo.");
     }
   };
 
