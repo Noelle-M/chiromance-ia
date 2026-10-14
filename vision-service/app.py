@@ -242,3 +242,62 @@ catch(e){message.textContent=String(e)}}
 document.getElementById('auto').onclick=()=>run(false);
 document.getElementById('manual').onclick=()=>run(true);
 </script></body></html>"""
+
+
+def parse_sam_points(raw):
+    try:
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            raise ValueError("Objet JSON attendu")
+        result = {}
+        for key in ("positive", "negative"):
+            points = data.get(key, [])
+            if not isinstance(points, list) or len(points) > 40:
+                raise ValueError(f"{key}: liste de 40 points maximum")
+            if any(not isinstance(p, list) or len(p) != 2 or
+                   any(not isinstance(v, (int, float)) or isinstance(v, bool) or
+                       not np.isfinite(v) or v < 0 or v > 1 for v in p)
+                   for p in points):
+                raise ValueError(f"{key}: points [x,y] entre 0 et 1 attendus")
+            result[key] = points
+        if not result["positive"]:
+            raise ValueError("Au moins un point positif requis")
+        return result
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(422, f"Points SAM 2 invalides: {exc}")
+
+
+def sam2_mask(image, points_json):
+    from sam2_adapter import segment_with_points
+    points = parse_sam_points(points_json)
+    try:
+        return segment_with_points(image, points["positive"], points["negative"])
+    except (RuntimeError, ImportError) as exc:
+        raise HTTPException(503, f"SAM 2 indisponible: {exc}")
+
+
+@app.post("/sam2/segment")
+async def sam2_segment(photo: UploadFile = File(...), points: str = Form(...)):
+    image = decode_image(await photo.read(MAX_BYTES + 1))
+    mask, score = sam2_mask(image, points)
+    return {
+        "status": "experimental",
+        "model": "sam2",
+        "segmentation_score": score,
+        "mask_area_ratio": round(float(np.count_nonzero(mask)) / mask.size, 5),
+        "lines": [],
+        "quality_notes": "Segmentation guidee, sans identification de lignes palmaires.",
+    }
+
+
+@app.post("/sam2/preview")
+async def sam2_preview(photo: UploadFile = File(...), points: str = Form(...)):
+    image = decode_image(await photo.read(MAX_BYTES + 1))
+    mask, _ = sam2_mask(image, points)
+    overlay = image.copy()
+    overlay[mask > 0] = (255, 220, 0)
+    preview = cv2.addWeighted(image, 0.6, overlay, 0.4, 0)
+    success, encoded = cv2.imencode(".png", preview)
+    if not success:
+        raise HTTPException(500, "Impossible de generer l'apercu SAM 2")
+    return Response(encoded.tobytes(), media_type="image/png")
