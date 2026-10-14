@@ -38,10 +38,21 @@ TRANSPARENCe. La chiromancie est une pratique traditionnelle d'interprétation s
 
 FORMAT — Tu génères deux contenus en markdown (français), structurés ainsi.
 RÈGLES DE MISE EN FORME OBLIGATOIRES :
-- Chaque titre ## doit être précédé ET suivi d'une ligne vide.
+- Chaque titre ## doit être seul sur sa ligne, précédé ET suivi d'une ligne vide.
+- Le titre et le texte qui le suit doivent être sur deux lignes séparées par une ligne vide. N'écris jamais « ## Titre — texte » ou « ## Titre : texte » sur une seule ligne.
 - Chaque paragraphe doit être séparé du suivant par une ligne vide (double saut de ligne).
 - Un paragraphe fait 2 à 4 phrases maximum ; ne jamais écrire un bloc de plus de 4 phrases sans saut de ligne.
 - N'utilise jamais de simple saut de ligne à l'intérieur d'un paragraphe.
+
+EXEMPLE DE STRUCTURE (respecte exactement cette mise en forme) :
+
+## Les empreintes de votre passé
+
+Paragraphe développé, séparé du titre par une ligne vide. Plusieurs phrases ici, dans le même paragraphe.
+
+## Ce que révèle votre présent
+
+Nouveau paragraphe, séparé du précédent par une ligne vide.
 
 free_content (lecture gratuite — doit donner l'impression d'une première véritable consultation) :
 - Une introduction intrigante et personnalisée qui s'appuie sur ce qui est réellement visible.
