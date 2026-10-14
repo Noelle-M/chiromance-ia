@@ -81,16 +81,6 @@ export default function CameraCapture({ handLabel, onValidated }) {
           <>
             <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
             <canvas ref={canvasRef} className="hidden" />
-            {/* Palm guide overlay */}
-            <svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMid meet" className="absolute inset-0 w-full h-full pointer-events-none opacity-70">
-              <path
-                d="M50 12 C40 12 36 22 36 30 C36 34 34 36 32 36 C28 36 26 30 24 30 C20 30 18 38 22 42 C24 44 24 46 22 48 C18 48 16 44 14 46 C12 48 14 54 18 56 L40 78 C42 82 42 88 42 96 C42 108 48 120 56 120 C68 120 76 110 78 98 L82 60 C84 48 80 40 72 38 C66 36 62 30 60 24 C58 18 56 12 50 12 Z"
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="1.2"
-                strokeDasharray="3 2"
-              />
-            </svg>
             <div className="absolute top-3 left-3 right-3 text-center text-[11px] text-primary/90 bg-background/50 rounded-full px-3 py-1 backdrop-blur">
               {handLabel}
             </div>
