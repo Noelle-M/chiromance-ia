@@ -70,7 +70,7 @@ export default function ChatPanel({ messages, onSend, busy, blocked, remaining, 
         </div> :
 
       <>
-          <p className="text-xs text-muted-foreground mb-2 hidden">Répondez ici à la lecture ci-dessus, ou posez votre propre question. Chaque message envoyé compte pour une question gratuite.</p>
+          
           <form onSubmit={submit} className="flex gap-2">
             <input
             value={input}
@@ -83,13 +83,13 @@ export default function ChatPanel({ messages, onSend, busy, blocked, remaining, 
             </button>
           </form>
 
-          <button
-          onClick={signal}
-          disabled={busy}
-          className="btn-ghost-gold w-full py-2 mt-2 text-xs flex items-center justify-center gap-2 hidden">
           
-            <HelpCircle size={13} /> Cette interprétation ne correspond pas à mon vécu
-          </button>
+
+
+
+
+
+        
         </>
       }
     </div>);
