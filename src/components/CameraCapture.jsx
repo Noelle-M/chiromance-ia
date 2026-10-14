@@ -99,27 +99,28 @@ export default function CameraCapture({ handLabel, onValidated }) {
 
       {!preview ? (
         <div className="flex flex-col items-center gap-3 w-full max-w-sm">
+          <button
+            type="button"
+            onClick={capture}
+            disabled={!cameraReady}
+            aria-label="Prendre la photo"
+            className="btn-gold flex h-16 w-16 shrink-0 items-center justify-center rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Camera size={28} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="btn-ghost-gold flex items-center justify-center gap-2 px-5 py-2 text-sm"
+          >
+            <ImagePlus size={18} /> Galerie
+          </button>
           <ul className="text-[12px] text-muted-foreground space-y-1 text-center leading-relaxed">
             <li>Placez votre paume face à l'objectif.</li>
             <li>Gardez les doigts légèrement écartés.</li>
             <li>Photographiez sous une lumière suffisante.</li>
             <li>Assurez-vous que toute la paume est visible.</li>
           </ul>
-          <div className="flex gap-3 w-full">
-            <button
-              onClick={capture}
-              disabled={!cameraReady}
-              className="btn-gold flex-1 flex items-center justify-center gap-2 py-3 disabled:opacity-40"
-            >
-              <Camera size={18} /> Capturer
-            </button>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="btn-ghost-gold flex-1 flex items-center justify-center gap-2 py-3"
-            >
-              <ImagePlus size={18} /> Galerie
-            </button>
-          </div>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
         </div>
       ) : (
