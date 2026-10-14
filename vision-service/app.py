@@ -187,3 +187,58 @@ async def preview(photo: UploadFile = File(...), roi: str | None = Form(None)):
     if not success:
         raise HTTPException(500, "Impossible de generer l'apercu")
     return Response(encoded.tobytes(), media_type="image/png")
+
+
+@app.get("/demo", response_class=HTMLResponse)
+def demo():
+    return """<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test de détection des plis</title>
+<style>body{font:16px system-ui;background:#15101c;color:#f4e8cf;max-width:850px;margin:2rem auto;padding:1rem}
+button,input{font:inherit;padding:.65rem;margin:.5rem 0}button{cursor:pointer}
+canvas{display:block;max-width:100%;height:auto;border:1px solid #9a7b4a;touch-action:none}
+pre{white-space:pre-wrap;overflow-wrap:anywhere}p{line-height:1.5}</style></head>
+<body><h1>Test du moteur de vision</h1>
+<p>Choisissez une photo brute. Lancez la détection automatique, ou tracez un polygone
+autour de la paume en cliquant sur l'image. Les points servent uniquement à délimiter
+la zone d'analyse, pas à inventer les lignes.</p>
+<input id="file" type="file" accept="image/*"><div>
+<button id="auto">Détection automatique</button>
+<button id="manual">Analyser la zone dessinée</button>
+<button id="clear">Effacer la zone</button></div>
+<canvas id="canvas"></canvas><p id="message"></p><pre id="result"></pre>
+<script>
+const file=document.getElementById('file'),canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d'),message=document.getElementById('message');
+const result=document.getElementById('result');let img=null,points=[];
+function draw(){if(!img)return;ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.drawImage(img,0,0,canvas.width,canvas.height);
+if(points.length){ctx.strokeStyle='#00cfff';ctx.fillStyle='#00cfff';ctx.lineWidth=3;
+ctx.beginPath();points.forEach((p,i)=>{const x=p[0]*canvas.width,y=p[1]*canvas.height;
+if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.stroke();
+points.forEach(p=>{ctx.beginPath();ctx.arc(p[0]*canvas.width,p[1]*canvas.height,4,0,Math.PI*2);ctx.fill()})}}
+file.onchange=()=>{const f=file.files[0];if(!f)return;
+const url=URL.createObjectURL(f);const image=new Image();image.onload=()=>{
+img=image;const scale=Math.min(1,900/image.width,900/image.height);
+canvas.width=Math.round(image.width*scale);canvas.height=Math.round(image.height*scale);
+points=[];draw();URL.revokeObjectURL(url)};image.src=url};
+canvas.onclick=e=>{if(!img)return;const r=canvas.getBoundingClientRect();
+points.push([(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]);draw()};
+document.getElementById('clear').onclick=()=>{points=[];draw()};
+async function run(manual){if(!file.files[0]){message.textContent='Choisissez une photo.';return}
+if(manual&&points.length<3){message.textContent='Placez au moins trois points.';return}
+message.textContent='Analyse en cours...';result.textContent='';
+const data=new FormData();data.append('photo',file.files[0]);
+if(manual)data.append('roi',JSON.stringify(points));
+try{const [res,preview]=await Promise.all([fetch('/analyze',{method:'POST',body:data}),
+fetch('/preview',{method:'POST',body:data})]);
+const info=await res.json();result.textContent=JSON.stringify(info,null,2);
+if(!res.ok)throw new Error(info.detail||info.error||'Erreur de détection');
+if(!preview.ok)throw new Error('Aperçu indisponible');
+const blob=await preview.blob();const url=URL.createObjectURL(blob);
+const overlay=new Image();overlay.onload=()=>{ctx.drawImage(overlay,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url)};
+overlay.src=url;message.textContent='Aperçu expérimental : les lignes traditionnelles ne sont pas encore identifiées.'}
+catch(e){message.textContent=String(e)}}
+document.getElementById('auto').onclick=()=>run(false);
+document.getElementById('manual').onclick=()=>run(true);
+</script></body></html>"""
