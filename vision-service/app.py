@@ -301,3 +301,9 @@ async def sam2_preview(photo: UploadFile = File(...), points: str = Form(...)):
     if not success:
         raise HTTPException(500, "Impossible de generer l'apercu SAM 2")
     return Response(encoded.tobytes(), media_type="image/png")
+
+
+@app.get("/sam2/demo", response_class=HTMLResponse)
+def sam2_demo():
+    from pathlib import Path
+    return (Path(__file__).resolve().parent / "sam2_demo.html").read_text(encoding="utf-8")
