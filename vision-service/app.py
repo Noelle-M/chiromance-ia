@@ -307,3 +307,16 @@ async def sam2_preview(photo: UploadFile = File(...), points: str = Form(...)):
 def sam2_demo():
     from pathlib import Path
     return (Path(__file__).resolve().parent / "sam2_demo.html").read_text(encoding="utf-8")
+
+
+@app.get("/palm-lines/demo", response_class=HTMLResponse)
+def palm_lines_demo():
+    from pathlib import Path
+    return (Path(__file__).resolve().parent / "palm_lines_demo.html").read_text(encoding="utf-8")
+
+
+@app.get("/palm-lines/palmLines.js")
+def palm_lines_module():
+    from pathlib import Path
+    source = (Path(__file__).resolve().parent / "palmLines.js").read_text(encoding="utf-8")
+    return Response(source, media_type="text/javascript")
