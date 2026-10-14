@@ -32,7 +32,7 @@ INTERDICTIONS ABSOLUES.
 
 LANGAGE SYMBOLIQUE. Emploie le registre de la lecture traditionnelle : "Dans la tradition chiromantique, cette bifurcation est associée à un changement de direction…", "Ce segment de la ligne de vie correspond, selon les lecteurs, à une période de…", "Cette intersection entre la ligne de tête et la ligne du destin évoque un moment où la réflexion rejoint le destin…". Varie tes formulations, ne répète pas les mêmes canevas.
 
-SUBSTANCE. Recherche les éléments distinctifs de la main : bifurcations, interruptions, croisements, variations de profondeur, relations entre lignes, particularités de la forme. Deux mains différentes doivent produire des lectures différentes. Si un signe ne permet pas une interprétation précise, reconnais-le avec honnêteté plutôt que de forcer une réponse.
+SUBSTANCE. Ta lecture repose sur les lignes réellement observées. Tu n'inventes jamais de signe et tu ne compenses pas l'absence d'une ligne par des généralités sur la forme de la main. Recherche les éléments distinctifs de la main : bifurcations, interruptions, croisements, variations de profondeur, relations entre lignes, particularités de la forme. Deux mains différentes doivent produire des lectures différentes. Si un signe ne permet pas une interprétation précise, reconnais-le avec honnêteté plutôt que de forcer une réponse.
 
 TRANSPARENCe. La chiromancie est une pratique traditionnelle d'interprétation symbolique ; elle ne prédit pas scientifiquement les événements. Mentionne-le une seule fois, discrètement, dans l'introduction ou la synthèse — sans interrompre chaque paragraphe.
 
@@ -174,10 +174,22 @@ export default async function(req) {
       }
     }
 
-    // Only hard-reject when no hand at all is visible. Quality notes are advisory otherwise.
-    if (!handDetected && allObservations.length === 0) {
+    // Une vraie chiromancienne commence par vérifier que les lignes sont lisibles.
+    // Si la photo ne révèle pas clairement les lignes principales, on ne lit pas
+    // « le reste » : on demande une nouvelle photo.
+    if (!handDetected) {
       await base44.entities.Scan.update(scanId, { status: 'failed', quality_notes: qualityNotes, error_message: 'Aucune main détectée' });
-      return Response.json({ error: 'Aucune main détectée sur la photo. Reprenez la photo paume face à l\'objectif.', quality_notes: qualityNotes }, { status: 422 });
+      return Response.json({ error: "Aucune main n'a été détectée sur la photo. Reprenez-la paume face à l'objectif, bien éclairée.", quality_notes: qualityNotes }, { status: 422 });
+    }
+
+    const MAJOR_LINES = ['life', 'heart', 'head'];
+    const rightObs = allObservations.filter((o) => o.hand === 'right');
+    const clearLines = rightObs.filter((o) => !o.uncertain && (o.confidence ?? 0) >= 0.3);
+    const missingMajor = MAJOR_LINES.filter((n) => !clearLines.some((o) => o.line_name === n));
+
+    if (missingMajor.length > 0) {
+      await base44.entities.Scan.update(scanId, { status: 'failed', quality_notes: qualityNotes, error_message: 'Lignes insuffisamment visibles' });
+      return Response.json({ error: "Les lignes de votre main ne sont pas assez nettes pour une lecture digne d'une vraie chiromancienne. Reprenez la photo : paume bien éclairée, face à l'objectif, doigts légèrement écartés, sans ombre marquée.", quality_notes: qualityNotes }, { status: 422 });
     }
 
     // Save observations
@@ -202,7 +214,7 @@ export default async function(req) {
     };
 
     const interpRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `${MOTEUR_B_PROMPT}\n\nContexte : analyse de ${handsDesc}.\nForme de la paume : ${palmShape || 'non déterminée'}.\nProportions des doigts : ${fingerProportions || 'non déterminées'}.\n\nObservations visuelles du Moteur A :\n${obsSummary || 'Aucune ligne majeure clairement identifiable ; baser la lecture sur la forme de la paume et les proportions observées.'}`,
+      prompt: `${MOTEUR_B_PROMPT}\n\nContexte : analyse de ${handsDesc}.\nForme de la paume : ${palmShape || 'non déterminée'}.\nProportions des doigts : ${fingerProportions || 'non déterminées'}.\n\nObservations visuelles du Moteur A :\n${obsSummary}`,
       response_json_schema: interpSchema,
     });
 
