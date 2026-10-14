@@ -282,7 +282,7 @@ export default function Reading() {
           ) : (
             <button onClick={handleReveal} disabled={busy || deepBusy} className="btn-gold w-full flex items-center justify-center gap-2 py-4">
               {busy || deepBusy ? <Loader2 className="animate-spin" size={18} /> : <Lock size={16} />}
-              {deepBusy ? "Génération de la lecture approfondie…" : "Révéler mon rapport complet - 4,99 € (paiement unique)"}
+              {deepBusy ? "Génération de la lecture approfondie…" : (<span className="text-center leading-tight">Révéler mon rapport complet<br /><span className="text-sm opacity-90">4,99 € · paiement unique</span></span>)}
             </button>
           )}
           {error && <p className="text-[11px] text-muted-foreground mt-3 text-center leading-relaxed">{error}</p>}
