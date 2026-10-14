@@ -10,9 +10,20 @@ const LINE_LABELS = {
   secondary: "Ligne secondaire",
 };
 
+const validCoordinates = (coordinates) => {
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return false;
+  return coordinates.every((point) =>
+    Number.isFinite(point?.x) && Number.isFinite(point?.y) &&
+    point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1
+  ) && coordinates.some((point, i) =>
+    i > 0 && (point.x !== coordinates[0].x || point.y !== coordinates[0].y)
+  );
+};
+
 export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
   const [selected, setSelected] = useState(null);
   const [showLabels, setShowLabels] = useState(true);
+  const visibleObservations = observations.filter((o) => validCoordinates(o.coordinates));
 
   const handleSelect = (obs) => {
     setSelected(obs.id);
@@ -26,12 +37,12 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
       ) : (
         <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-sm">Photo indisponible</div>
       )}
-      <svg
+      {photoUrl && <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
         className="absolute inset-0 w-full h-full"
       >
-        {observations.map((o, i) => {
+        {visibleObservations.map((o, i) => {
           const pts = o.coordinates.map((c) => `${(c.x * 100).toFixed(2)},${(c.y * 100).toFixed(2)}`).join(" ");
           const isSel = selected === o.id;
           return (
@@ -55,10 +66,10 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
             />
           );
         })}
-      </svg>
+      </svg>}
 
-      {showLabels &&
-        observations.map((o, i) => {
+      {photoUrl && showLabels &&
+        visibleObservations.map((o, i) => {
           if (!o.coordinates?.length) return null;
           const mid = o.coordinates[Math.floor(o.coordinates.length / 2)];
           return (
@@ -73,14 +84,14 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
           );
         })}
 
-      <div className="absolute top-2 right-2">
+      {photoUrl && <div className="absolute top-2 right-2">
         <button
           onClick={() => setShowLabels((s) => !s)}
           className="text-[10px] text-primary bg-background/70 backdrop-blur px-2 py-1 rounded-full border border-primary/30"
         >
           {showLabels ? "Masquer les noms" : "Afficher les noms"}
         </button>
-      </div>
+      </div>}
 
       <style>{`@keyframes draw-line { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }`}</style>
     </div>
