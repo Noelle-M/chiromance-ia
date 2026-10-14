@@ -12,7 +12,7 @@ EXAMEN PRÉALABLE — Avant d'interpréter, examine attentivement TOUT ce qui es
 PRINCIPE FONDAMENTAL — Le temps traverse la main.
 Chaque lecture s'organise autour de trois temps : le passé, le présent et l'avenir. Tu ne sépares pas la personnalité de la trajectoire : tu lis un parcours.
 
-STABILITÉ DES OBSERVATIONS — Les observations du Moteur A et ce que tu vois sur la photographie constituent la base fixe de ta lecture. Tu ne changes pas d'avis sous la pression d'une question. Si l'utilisateur interroge un signe que tu n'as pas mentionné (un voyage, une rencontre, un changement), tu le cherches honnêtement sur la photo :
+STABILITÉ DES OBSERVATIONS — Ce que tu vois directement sur la photographie originale constitue la seule base visuelle de ta lecture. Tu ne changes pas d'avis sous la pression d'une question. Si l'utilisateur interroge un signe que tu n'as pas mentionné (un voyage, une rencontre, un changement), tu le cherches honnêtement sur la photo :
 - Si tu le vois clairement, tu l'expliques en précisant ce que tu observes maintenant, où, et pourquoi tu ne l'avais pas signalé auparavant. Dis-le explicitement : « Je ne l'avais pas mentionné dans ma première lecture, mais en examinant à nouveau… ». Tu ne présentes jamais comme une évidence de toujours un signe que tu viens seulement de remarquer.
 - Si tu ne le vois pas clairement, tu le dis franchement et tu restes cohérent avec ta première lecture. Tu n'inventes jamais un signe pour faire plaisir ou pour fournir une réponse.
 Une question de l'utilisateur n'est jamais une confirmation de l'existence d'un signe.
@@ -96,10 +96,6 @@ export default async function(req) {
     const scan = await base44.entities.Scan.get(scanId);
     if (!scan) return Response.json({ error: 'Scan introuvable' }, { status: 404 });
 
-    // Observations produites par le Moteur A (détection visuelle).
-    const obsPage = await base44.entities.Observation.filter({ scan_id: scanId }, { limit: 100 });
-    const observations = obsPage.items || [];
-
     // Photographies signées transmises à GPT pour examen direct de la main.
     const photoUrls = [];
     if (scan.right_hand_photo) {
@@ -115,20 +111,13 @@ export default async function(req) {
     const histPage = await base44.entities.ChatMessage.filter({ scan_id: scanId }, { sort: 'created_date', limit: 50 });
     const history = histPage.items || [];
 
-    const obsSummary = observations
-      .map((o) => {
-        const points = Array.isArray(o.coordinates) ? o.coordinates.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y)).map((p) => `(${p.x.toFixed(2)}, ${p.y.toFixed(2)})`).join(' → ') : '';
-        return `- Main ${o.hand === 'right' ? 'droite' : 'gauche'} — ${o.line_label || o.line_name} (confiance ${((o.confidence || 0) * 100).toFixed(0)}%${o.uncertain ? ', incertain' : ''}) : ${o.characteristics || 'caractéristiques non précisées'} ; tracé normalisé sur la photo : ${points || 'non disponible'}`;
-      })
-      .join('\n');
-
     // Détermination du mode.
     let mode = body.mode;
     if (!mode) {
       mode = body.message && body.message.trim() ? 'chat' : (history.length === 0 ? 'reading' : 'chat');
     }
 
-    const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'system', content: `Observations visuelles enregistrées pour ce scan (données à confronter à la photo, sans inventer de signes) :\n${obsSummary || 'Aucune observation enregistrée. Ne suppose aucune ligne détectée.'}` }];
+    const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'system', content: "Analyse directement la photographie originale, sans description intermédiaire. Observe chaque main indépendamment. Appuie chaque interprétation symbolique sur une caractéristique visible, précise et localisable sur CETTE photo. Évite les portraits psychologiques passe-partout, les prédictions affirmatives et les événements inventés. Si les plis sont trop peu visibles, signale la limite et demande une meilleure photo. Les lignes dorées de Palm Line Reader sont un effet visuel indépendant, jamais une source d'informations." }];
 
     // Rejoue l'historique (texte uniquement) pour conserver le contexte du scan.
     for (const m of history) {
@@ -137,9 +126,9 @@ export default async function(req) {
 
     let userText = '';
     if (mode === 'reading') {
-      userText = `Voici la photographie de la main à lire.\nObservations du Moteur A (détection visuelle des lignes) :\n${obsSummary || '(aucune ligne détectée)'}\n\n${READING_PROMPT}`;
+      userText = `Examine directement la photographie originale. Identifie les caractéristiques propres à cette main et explique à quel signe visible correspond chaque interprétation.\n\n${READING_PROMPT}`;
     } else if (mode === 'deep') {
-      userText = `Voici à nouveau la photographie et les observations du Moteur A :\n${obsSummary || '(aucune ligne détectée)'}\n\n${DEEP_PROMPT}`;
+      userText = `Réexamine directement la photographie originale, sans t'appuyer sur un ancien moteur de description.\n\n${DEEP_PROMPT}`;
     } else {
       const userMsg = (body.message || '').trim();
       if (!userMsg) return Response.json({ error: 'message requis' }, { status: 400 });
