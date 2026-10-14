@@ -6,7 +6,7 @@ COEFFICIENTS DE COORDONNÉES — RÈGLE ABSOLUE.
 Chaque point de chaque ligne est donné par deux nombres x et y, TOUS DEUX compris entre 0 et 1 (JAMAIS en pixels) :
 - x = 0 → bord gauche de la photo, x = 1 → bord droit.
 - y = 0 → bord supérieur de la photo, y = 1 → bord inférieur.
-- N'écris JAMAIS de valeur supérieure à 1 ou négative. Si tu penses « 625 » ou « 800 », c'est une erreur : écris « 0.62 » ou « 0.80 ».
+- N'écris JAMAIS de valeur supérieure à 1 ou négative. Calcule chaque coordonnée en divisant la position en pixels par la largeur ou la hauteur TOTALE de l'image correspondante, jamais par la valeur maximale d'une ligne. Si tu ne peux pas localiser précisément une ligne, ne la trace pas.
 Exemple correct, un point au centre de la paume : {"x": 0.50, "y": 0.55}.
 
 TRACÉ DES LIGNES — Pour chaque ligne réellement visible, fournis une polyline de 8 à 14 points qui suit fidèlement le parcours réel de la ligne sur la photo, depuis son origine jusqu'à son extrémité. Ces points doivent permettre de redessiner la ligne par-dessus la photographie. Une vraie ligne de main est courbe : ne te contente pas de 3 points ni de segments droits. Rapproche les points dans les courbes et les bifurcations.
@@ -102,14 +102,13 @@ export default async function(req) {
       const lines = Array.isArray(visionRes.lines) ? visionRes.lines : [];
       for (const ln of lines) {
         if (!ln.coordinates || ln.coordinates.length < 2) continue;
-        // Safety: the model sometimes emits pixel values (>1) for one axis.
-        // Renormalize any axis whose max exceeds 1 by dividing by its max.
-        const raw = ln.coordinates.map((c) => ({ x: Number(c.x), y: Number(c.y) }));
-        const maxX = Math.max(...raw.map((c) => c.x));
-        const maxY = Math.max(...raw.map((c) => c.y));
-        const norm = raw
-          .map((c) => ({ x: maxX > 1 ? c.x / maxX : c.x, y: maxY > 1 ? c.y / maxY : c.y }))
-          .map((c) => ({ x: Math.min(1, Math.max(0, c.x)), y: Math.min(1, Math.max(0, c.y)) }));
+        // Les coordonnées sont relatives à l'image entière. Ne jamais les
+        // diviser par le maximum d'une ligne : cela déplace les tracés.
+        const norm = ln.coordinates.map((c) => ({ x: Number(c.x), y: Number(c.y) }));
+        if (!norm.every((c) => Number.isFinite(c.x) && Number.isFinite(c.y) && c.x >= 0 && c.x <= 1 && c.y >= 0 && c.y <= 1)) {
+          qualityNotes += (qualityNotes ? ' | ' : '') + 'Coordonnées invalides pour ' + (ln.line_label || ln.line_name);
+          continue;
+        }
         allObservations.push({
           scan_id: scanId,
           hand: s.hand,
