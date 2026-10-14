@@ -48,3 +48,21 @@ curl -F "photo=@paume.jpg" -F 'roi=[[0.2,0.4],[0.75,0.4],[0.8,0.8],[0.2,0.85]]' 
 Cette zone doit être délimitée sur la photographie d'origine, sans les bordures
 de l'application. L'option est **manuelle** : elle ne prétend pas détecter la
 paume automatiquement. Sans `roi`, le service examine toujours l'image entière.
+
+## Interface de test intégrée
+
+Démarrez le serveur puis ouvrez `http://127.0.0.1:8000/demo`.
+Chargez la photo d'origine, lancez **Détection automatique**, puis comparez
+avec **Analyser la zone dessinée** si l'isolement automatique échoue.
+Le contour cyan de l'aperçu marque la région de recherche.
+
+La détection automatique est une **heuristique de couleur et de forme**, pas
+un modèle de segmentation entraîné. Elle peut échouer selon la lumière,
+la couleur de peau ou le décor : dans ce cas l'API renvoie HTTP 422 et
+l'interface permet de dessiner la région manuellement.
+
+Les résultats restent diagnostiques : `lines: []` est intentionnel.
+Il faut encore entraîner ou intégrer un modèle de segmentation des plis,
+le valider sur un jeu de photographies annotées, puis seulement relier
+ces observations à l'interprétation GPT-4.1. Ne pas remplacer
+`analyzeHand` tant que cette validation n'est pas terminée.
