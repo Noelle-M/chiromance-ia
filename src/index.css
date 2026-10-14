@@ -184,3 +184,13 @@
 }
 .prose-reading a { @apply text-primary underline underline-offset-2; }
 .prose-reading code { @apply text-primary bg-primary/10 rounded px-1 py-0.5 text-[0.9em]; }
+
+.reading-markdown {
+  @apply min-w-0 font-body text-base leading-[1.85] break-words;
+}
+.reading-markdown h1 { @apply text-3xl; }
+.reading-markdown h2 { @apply text-2xl; }
+.reading-markdown h3 { @apply text-xl; }
+.reading-markdown p { @apply mb-5; }
+.reading-markdown ul, .reading-markdown ol { @apply my-5; }
+.reading-markdown > *:last-child { @apply mb-0; }

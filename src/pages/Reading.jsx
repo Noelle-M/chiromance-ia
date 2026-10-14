@@ -1,19 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Download, Sparkles, AlertCircle } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import ReadingMarkdown from "@/components/ReadingMarkdown";
 import { base44 } from "@/api/base44Client";
 import PalmCanvas from "@/components/PalmCanvas";
 import { generateReportPdf } from "@/lib/generateReportPdf";
 
-// Ensures every line is its own block so markdown renders as separate paragraphs/headings, not one slab.
-const normalizeMd = (md) => {
-  if (!md) return "";
-  let s = md.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  s = s.replace(/\n/g, "\n\n");      // turn every line break into a paragraph break
-  s = s.replace(/\n{3,}/g, "\n\n");   // collapse extra blanks
-  return s;
-};
+
 
 export default function Reading() {
   const { scanId } = useParams();
@@ -152,18 +145,14 @@ export default function Reading() {
             </div>
           )}
 
-          <div className="prose-reading">
-            <ReactMarkdown>{normalizeMd(reading.free_content)}</ReactMarkdown>
-          </div>
+          <ReadingMarkdown>{reading.free_content}</ReadingMarkdown>
 
           <div className="gold-divider my-6" />
 
           {unlocked ? (
             <div>
               <h2 className="font-display text-2xl text-primary mb-3">Rapport complet</h2>
-              <div className="prose-reading">
-                <ReactMarkdown>{normalizeMd(reading.full_content)}</ReactMarkdown>
-              </div>
+              <ReadingMarkdown>{reading.full_content}</ReadingMarkdown>
               <div className="gold-divider my-5" />
               {pdfUrl ? (
                 <a href={pdfUrl} download={`rapport-chiromance-${scanId}.pdf`} target="_blank" rel="noreferrer" className="btn-gold w-full flex items-center justify-center gap-2 py-3">

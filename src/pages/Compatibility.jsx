@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Heart, Loader2, Share2, Copy, Check, X, Link2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import ReactMarkdown from "react-markdown";
+import ReadingMarkdown from "@/components/ReadingMarkdown";
 
 export default function Compatibility() {
   const [view, setView] = useState('home'); // home | create | waiting | result | accept
@@ -188,9 +188,7 @@ export default function Compatibility() {
         <div className="space-y-4">
           <div className="gold-divider" />
           <h2 className="font-display text-2xl text-primary text-center">Votre compatibilité</h2>
-          <div className="prose-reading">
-            <ReactMarkdown>{compat.result_content || "Résultat en cours de finalisation."}</ReactMarkdown>
-          </div>
+          <ReadingMarkdown>{compat.result_content || "Résultat en cours de finalisation."}</ReadingMarkdown>
           <button onClick={() => setView('home')} className="btn-ghost-gold w-full py-3">Nouvelle compatibilité</button>
         </div>
       )}

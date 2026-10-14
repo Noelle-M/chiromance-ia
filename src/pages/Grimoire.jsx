@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BookMarked, Loader2, Hand, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import ReactMarkdown from "react-markdown";
+import ReadingMarkdown from "@/components/ReadingMarkdown";
 
 const LINE_LABELS = {
   life: "Ligne de vie", heart: "Ligne de cœur", head: "Ligne de tête",
@@ -98,9 +98,7 @@ export default function Grimoire() {
 
               {reading && (
                 <div className="mt-2 border-t border-border/50 pt-3">
-                  <div className="prose-reading text-[13px]">
-                    <ReactMarkdown>{excerpt(reading.summary || reading.free_content)}</ReactMarkdown>
-                  </div>
+                  <ReadingMarkdown>{excerpt(reading.summary || reading.free_content)}</ReadingMarkdown>
                 </div>
               )}
             </div>
