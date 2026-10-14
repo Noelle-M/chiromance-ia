@@ -1,0 +1,75 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "scan_id": {
+      "type": "string",
+      "description": "id of the Scan this message belongs to"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "description": "who authored the message"
+    },
+    "content": {
+      "type": "string",
+      "description": "message text (markdown for assistant)"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "reading",
+        "chat",
+        "revision"
+      ],
+      "default": "chat",
+      "description": "reading = initial full reading, chat = follow-up exchange, revision = re-examination after a mismatch signal"
+    }
+  },
+  "required": [
+    "scan_id",
+    "role",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
