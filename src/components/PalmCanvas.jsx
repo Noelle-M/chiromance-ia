@@ -26,7 +26,7 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
   const { url: goldenOverlay, loading: lineLoading, error: lineError } = usePalmLineOverlay(photoUrl);
   const [showLabels, setShowLabels] = useState(true);
   const [showTraces, setShowTraces] = useState(true);
-  const visibleObservations = observations.filter((o) => validCoordinates(o.coordinates) && (!goldenOverlay || !["life", "heart", "head"].includes(o.line_name)));
+  const visibleObservations = goldenOverlay ? [] : observations.filter((o) => validCoordinates(o.coordinates));
 
   const handleSelect = (obs) => {
     setSelected(obs.id);
