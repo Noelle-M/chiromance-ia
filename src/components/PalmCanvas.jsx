@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePalmLineOverlay } from "@/lib/usePalmLineOverlay";
 
 const LINE_LABELS = {
   life: "Ligne de vie",
@@ -22,9 +23,10 @@ const validCoordinates = (coordinates) => {
 
 export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
   const [selected, setSelected] = useState(null);
+  const { url: goldenOverlay, loading: lineLoading, error: lineError } = usePalmLineOverlay(photoUrl);
   const [showLabels, setShowLabels] = useState(true);
   const [showTraces, setShowTraces] = useState(true);
-  const visibleObservations = observations.filter((o) => validCoordinates(o.coordinates));
+  const visibleObservations = observations.filter((o) => validCoordinates(o.coordinates) && (!goldenOverlay || !["life", "heart", "head"].includes(o.line_name)));
 
   const handleSelect = (obs) => {
     setSelected(obs.id);
@@ -37,6 +39,9 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
         <img src={photoUrl} alt="main" className="w-full block" />
       ) : (
         <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-sm">Photo indisponible</div>
+      )}
+      {photoUrl && showTraces && goldenOverlay && (
+        <img src={goldenOverlay} alt="Lignes principales détectées en doré" className="absolute inset-0 w-full h-full pointer-events-none" />
       )}
       {photoUrl && showTraces && <svg
         viewBox="0 0 100 100"
@@ -87,6 +92,11 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
           );
         })}
 
+      {photoUrl && (lineLoading || lineError) && (
+        <p className="absolute bottom-2 left-2 right-2 rounded bg-background/85 px-2 py-1 text-[10px] text-primary">
+          {lineLoading ? "Détection des lignes en cours…" : "Tracé spécialisé indisponible : affichage des observations existantes."}
+        </p>
+      )}
       {photoUrl && <div className="absolute top-2 right-2 flex flex-col items-end gap-2">
         <button
           onClick={() => setShowTraces((value) => !value)}
