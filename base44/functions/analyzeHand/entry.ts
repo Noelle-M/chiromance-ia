@@ -1,14 +1,23 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 
-const MOTEUR_A_PROMPT = `Tu es le Moteur A d'analyse visuelle d'une application de chiromancie. Tu observes une photographie de paume de main et tu produis des données structurées, sans interprétation symbolique.
+const MOTEUR_A_PROMPT = `Tu es le Moteur A d'analyse visuelle d'une application de chiromancie. Tu observes une photographie de paume de main et tu produis des données structurées, sans interprétation symbolique. Tu n'es pas la chiromancienne : tu décris seulement ce qui est visible, avec précision.
 
-Ta mission :
-- Identifier UNIQUEMENT les lignes réellement visibles sur la photographie. Les lignes traditionnelles : ligne de vie, ligne de cœur, ligne de tête, ligne du destin, ligne du Soleil, ligne de Mercure, et lignes secondaires si visibles.
-- Ne JAMAIS inventer une ligne absente de la photo. Une ligne incertaine doit être marquée uncertain=true. Une ligne non identifiable ne doit pas apparaître.
-- Pour chaque ligne visible, fournir un tracé sous forme de polyline de coordonnées normalisées (x et y entre 0 et 1, origine en haut à gauche, x horizontal, y vertical) suivant le parcours réel de la ligne sur la photo. Les points doivent permettre de redessiner la ligne sur la photographie.
-- Décrire les caractéristiques visuelles observées : courbure, longueur relative, profondeur apparente, bifurcations, intersections, interruptions, forme générale.
-- Indiquer la forme générale de la paume et les proportions des doigts si observables.
-- Vérifier la qualité de la photo : présence d'une main, paume visible, éclairage suffisant, netteté, cadrage. Si la photo est inexploitable, mettre quality_ok=false et expliquer dans quality_notes.
+COEFFICIENTS DE COORDONNÉES — RÈGLE ABSOLUE.
+Chaque point de chaque ligne est donné par deux nombres x et y, TOUS DEUX compris entre 0 et 1 (JAMAIS en pixels) :
+- x = 0 → bord gauche de la photo, x = 1 → bord droit.
+- y = 0 → bord supérieur de la photo, y = 1 → bord inférieur.
+- N'écris JAMAIS de valeur supérieure à 1 ou négative. Si tu penses « 625 » ou « 800 », c'est une erreur : écris « 0.62 » ou « 0.80 ».
+Exemple correct, un point au centre de la paume : {"x": 0.50, "y": 0.55}.
+
+TRACÉ DES LIGNES — Pour chaque ligne réellement visible, fournis une polyline de 8 à 14 points qui suit fidèlement le parcours réel de la ligne sur la photo, depuis son origine jusqu'à son extrémité. Ces points doivent permettre de redessiner la ligne par-dessus la photographie. Une vraie ligne de main est courbe : ne te contente pas de 3 points ni de segments droits. Rapproche les points dans les courbes et les bifurcations.
+
+LIGNES À IDENTIFIER — Les lignes traditionnelles : ligne de vie, ligne de cœur, ligne de tête, ligne du destin, ligne du Soleil, ligne de Mercure, et lignes secondaires si visibles. N'invente JAMAIS une ligne absente de la photo. Une ligne incertaine → uncertain=true. Une ligne non identifiable n'apparaît pas.
+
+CARACTÉRISTIQUES — Décris uniquement ce qui est visible : courbure et direction, longueur par rapport à la paume, profondeur apparente, netteté, bifurcations, intersections avec d'autres lignes, interruptions, îlots, chaînettes. Sois précis et factuel, jamais générique.
+
+FORME GÉNÉRALE — Indique la forme de la paume et les proportions des doigts si observables.
+
+QUALITÉ — Vérifie la qualité de la photo : présence d'une main, paume visible, éclairage suffisant, netteté, cadrage. Si la photo est inexploitable, mets quality_ok=false et explique dans quality_notes.
 
 Retourne un JSON conforme au schéma demandé. Texte en français.`;
 
@@ -93,12 +102,20 @@ export default async function(req) {
       const lines = Array.isArray(visionRes.lines) ? visionRes.lines : [];
       for (const ln of lines) {
         if (!ln.coordinates || ln.coordinates.length < 2) continue;
+        // Safety: the model sometimes emits pixel values (>1) for one axis.
+        // Renormalize any axis whose max exceeds 1 by dividing by its max.
+        const raw = ln.coordinates.map((c) => ({ x: Number(c.x), y: Number(c.y) }));
+        const maxX = Math.max(...raw.map((c) => c.x));
+        const maxY = Math.max(...raw.map((c) => c.y));
+        const norm = raw
+          .map((c) => ({ x: maxX > 1 ? c.x / maxX : c.x, y: maxY > 1 ? c.y / maxY : c.y }))
+          .map((c) => ({ x: Math.min(1, Math.max(0, c.x)), y: Math.min(1, Math.max(0, c.y)) }));
         allObservations.push({
           scan_id: scanId,
           hand: s.hand,
           line_name: ln.line_name,
           line_label: ln.line_label || '',
-          coordinates: ln.coordinates.map((c) => ({ x: c.x, y: c.y })),
+          coordinates: norm,
           characteristics: ln.characteristics || '',
           confidence: ln.confidence ?? 0.5,
           uncertain: !!ln.uncertain,
