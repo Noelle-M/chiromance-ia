@@ -17,6 +17,8 @@ STABILITÉ DES OBSERVATIONS — Les observations du Moteur A et ce que tu vois s
 - Si tu ne le vois pas clairement, tu le dis franchement et tu restes cohérent avec ta première lecture. Tu n'inventes jamais un signe pour faire plaisir ou pour fournir une réponse.
 Une question de l'utilisateur n'est jamais une confirmation de l'existence d'un signe.
 
+INTERPRÉTATIONS BIOGRAPHIQUES — Une absence de cassure visible ne signifie pas une absence d'événements, de déplacements ou de difficultés. Ne déduis jamais « enfance protégée », « jeunesse stable », « sans bouleversement », « absence de déménagement », « absence de crise » ou un événement concret de la seule continuité d'une ligne. Si un signe est ambigu ou absent, indique simplement que tu ne peux pas conclure sur cet aspect. Ne convertis pas une incertitude visuelle en certitude biographique.
+
 TROIS NIVEAUX BIEN SÉPARÉS — Distingue toujours clairement dans tes propos :
 1. Ce que tu observes sur la photographie (un tracé, une bifurcation, une forme).
 2. L'interprétation traditionnelle de ce signe dans la chiromancie.
@@ -48,7 +50,7 @@ CONVERSATION.
 - TON DE CONVERSATION. Tu es une chiromancienne expérimentée qui converse naturellement, pas un manuel. Les réponses de suivi sont naturelles, précises et proportionnées à la question. Ne structure pas chaque réponse en « 1. Observation / 2. Position / 3. Signification » : cette méthode détaillée sert à la lecture initiale et à la lecture approfondie, pas à un simple échange.
 - COHÉRENCE AVEC TA LECTURE INITIALE. Tu ne contredis pas sans raison ce que tu as affirmé à la première lecture. Si une question te pousse à réexaminer et que tu remarques un signe que tu avais omis, tu le reconnais ouvertement (voir STABILITÉ DES OBSERVATIONS). Si tu ne vois toujours pas le signe, tu le maintiens : « Comme je le disais, je ne distingue pas… ». Ne change pas d'avis pour complaire.
 - Tu peux poser une question lorsqu'elle apporte réellement quelque chose à la consultation. Ne termine pas systématiquement chaque réponse par « Souhaitez-vous que j'examine… ? ». N'interroge jamais l'utilisateur pour valider une hypothèse que tu présenterais alors comme certaine.
-- Si l'utilisateur signale qu'une interprétation ne correspond pas à son vécu : réexamine tes observations réelles et la photographie, reconnais les incertitudes, et propose une autre lecture traditionnelle lorsque les signes le permettent. N'invente jamais de nouveaux signes pour lui donner raison.
+- Si l'utilisateur signale qu'une interprétation ne correspond pas à son vécu : reconnais la limite de l'inférence biographique et corrige l'interprétation, sans modifier opportunément les signes visuels. Une ligne continue ne prouve jamais une enfance stable, une absence de déménagement, de naissance précoce ou de rupture vécue. Ne fabrique pas de nouveaux signes pour faire correspondre le récit à la réponse.
 
 FORMAT — Tu génères du markdown en français.
 RÈGLES DE MISE EN FORME OBLIGATOIRES :
@@ -79,7 +81,7 @@ const DEEP_PROMPT = `Rédige maintenant la lecture approfondie complète (le rap
 - ## Synthèse — relie les fils du parcours symbolique plutôt que de reformuler les sections précédentes, dans le ton d'une chiromancienne refermant la consultation.
 Chaque section : paragraphes développés, narratifs, ancrés dans les observations réelles et la photographie.`;
 
-const MISMATCH_NOTE = `\n\n[Note système] L'utilisateur signale que cette interprétation ne correspond pas à son vécu. Réexamine tes observations réelles et la photographie, reconnais les incertitudes, et propose une autre lecture traditionnelle lorsque les signes le permettent. N'invente jamais de nouveaux signes pour lui donner raison.`;
+const MISMATCH_NOTE = `\n\nL'utilisateur conteste une interprétation. Reconnais explicitement toute déduction biographique injustifiée. Ne change pas les caractéristiques visuelles pour lui donner raison. Explique ce qui reste observable et ce qui ne peut pas être déduit de la main.`;
 
 export default async function(req) {
   try {
@@ -114,7 +116,10 @@ export default async function(req) {
     const history = histPage.items || [];
 
     const obsSummary = observations
-      .map((o) => `- Main ${o.hand === 'right' ? 'droite' : 'gauche'} — ${o.line_label || o.line_name} (confiance ${((o.confidence || 0) * 100).toFixed(0)}%${o.uncertain ? ', incertain' : ''}) : ${o.characteristics || ''}`)
+      .map((o) => {
+        const points = Array.isArray(o.coordinates) ? o.coordinates.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y)).map((p) => `(${p.x.toFixed(2)}, ${p.y.toFixed(2)})`).join(' → ') : '';
+        return `- Main ${o.hand === 'right' ? 'droite' : 'gauche'} — ${o.line_label || o.line_name} (confiance ${((o.confidence || 0) * 100).toFixed(0)}%${o.uncertain ? ', incertain' : ''}) : ${o.characteristics || 'caractéristiques non précisées'} ; tracé normalisé sur la photo : ${points || 'non disponible'}`;
+      })
       .join('\n');
 
     // Détermination du mode.
@@ -123,7 +128,7 @@ export default async function(req) {
       mode = body.message && body.message.trim() ? 'chat' : (history.length === 0 ? 'reading' : 'chat');
     }
 
-    const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+    const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'system', content: `Observations visuelles enregistrées pour ce scan (données à confronter à la photo, sans inventer de signes) :\n${obsSummary || 'Aucune observation enregistrée. Ne suppose aucune ligne détectée.'}` }];
 
     // Rejoue l'historique (texte uniquement) pour conserver le contexte du scan.
     for (const m of history) {
@@ -152,7 +157,7 @@ export default async function(req) {
     const oaRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages, max_tokens: maxTokens, temperature: 0.8 }),
+      body: JSON.stringify({ model: MODEL, messages, max_tokens: maxTokens, temperature: 0.3 }),
       signal: AbortSignal.timeout(90000),
     });
 
