@@ -50,17 +50,19 @@ export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
               key={o.id || i}
               points={pts}
               fill="none"
-              stroke={o.uncertain ? "hsl(var(--muted-foreground))" : "hsl(var(--primary))"}
-              strokeWidth={isSel ? 1.1 : 0.7}
-              strokeOpacity={o.uncertain ? 0.5 : 0.95}
+              stroke="hsl(var(--primary))"
+              strokeWidth={isSel ? 4.5 : 3.2}
+              strokeOpacity={o.uncertain ? 0.75 : 1}
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
               className="cursor-pointer transition-all"
               style={{
-                filter: isSel ? "drop-shadow(0 0 4px hsl(var(--primary)))" : "none",
+                filter: isSel
+                  ? "drop-shadow(0 0 2px #000) drop-shadow(0 0 5px hsl(var(--primary)))"
+                  : "drop-shadow(0 0 2px #000) drop-shadow(0 0 3px hsl(var(--primary)))",
                 animation: `draw-line 1.2s ease-out ${i * 0.25}s both`,
-                strokeDasharray: 1000,
+                strokeDasharray: o.uncertain ? "8 5" : 1000,
               }}
               onClick={() => handleSelect(o)}
             />
