@@ -22,11 +22,12 @@
       "type": "string",
       "enum": [
         "reading",
+        "deep",
         "chat",
         "revision"
       ],
       "default": "chat",
-      "description": "reading = initial full reading, chat = follow-up exchange, revision = re-examination after a mismatch signal"
+      "description": "reading = initial free reading, deep = full paid reading, chat = follow-up exchange, revision = re-examination after a mismatch signal"
     }
   },
   "required": [

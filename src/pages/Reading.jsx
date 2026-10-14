@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Download, Sparkles, AlertCircle } from "lucide-react";
 import ReadingMarkdown from "@/components/ReadingMarkdown";
+import ChatPanel from "@/components/ChatPanel";
 import { base44 } from "@/api/base44Client";
 import PalmCanvas from "@/components/PalmCanvas";
 import { generateReportPdf } from "@/lib/generateReportPdf";
-
-
 
 export default function Reading() {
   const { scanId } = useParams();
@@ -18,12 +17,16 @@ export default function Reading() {
   const [leftUrl, setLeftUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [deepBusy, setDeepBusy] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatBusy, setChatBusy] = useState(false);
 
-  const load = async () => {
+  const loadAll = async () => {
     setLoading(true);
     try {
       const s = await base44.entities.Scan.get(scanId);
@@ -36,41 +39,99 @@ export default function Reading() {
       }
       const obsPage = await base44.entities.Observation.filter({ scan_id: scanId }, { limit: 100 });
       setObservations(obsPage.items || []);
-      const readPage = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: '-created_date', limit: 1 });
-      if (readPage.items?.length) {
-        setReading(readPage.items[0]);
-        const repPage = await base44.entities.Report.filter({ reading_id: readPage.items[0].id }, { limit: 1 });
+
+      const readPage = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: "-created_date", limit: 1 });
+      const currentReading = readPage.items?.[0] || null;
+
+      const msgPage = await base44.entities.ChatMessage.filter({ scan_id: scanId }, { sort: "created_date", limit: 50 });
+      const msgs = msgPage.items || [];
+      setChatMessages(msgs);
+
+      if (currentReading) {
+        setReading(currentReading);
+        const repPage = await base44.entities.Report.filter({ reading_id: currentReading.id }, { limit: 1 });
         if (repPage.items?.length) {
           setReport(repPage.items[0]);
           if (repPage.items[0].pdf_file_uri) {
-            try {
-              const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: repPage.items[0].pdf_file_uri });
-              setPdfUrl(r.signed_url);
-            } catch (e) {}
+            try { const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: repPage.items[0].pdf_file_uri }); setPdfUrl(r.signed_url); } catch (e) {}
           }
         }
       }
-    } catch (e) { setError("Lecture introuvable."); }
+
+      // Nouveau scan sans lecture : on génère la lecture initiale via GPT-4.1.
+      if (!currentReading && msgs.length === 0) {
+        await generateInitialReading();
+      }
+    } catch (e) {
+      setError("Lecture introuvable.");
+    }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [scanId]);
+  const generateInitialReading = async () => {
+    setGenerating(true);
+    setError("");
+    try {
+      await base44.functions.invoke("chatPalm", { scan_id: scanId, mode: "reading" });
+      const readPage = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: "-created_date", limit: 1 });
+      if (readPage.items?.length) setReading(readPage.items[0]);
+      const msgPage = await base44.entities.ChatMessage.filter({ scan_id: scanId }, { sort: "created_date", limit: 50 });
+      setChatMessages(msgPage.items || []);
+    } catch (e) {
+      setError("La génération de la lecture a échoué. Réessayez plus tard.");
+    }
+    setGenerating(false);
+  };
+
+  useEffect(() => { loadAll(); }, [scanId]);
+
+  const sendChat = async (text, signalMismatch) => {
+    setChatBusy(true);
+    setError("");
+    const userMsg = { id: "tmp-" + Date.now(), scan_id: scanId, role: "user", content: text, kind: signalMismatch ? "revision" : "chat" };
+    setChatMessages((m) => [...m, userMsg]);
+    try {
+      const res = await base44.functions.invoke("chatPalm", { scan_id: scanId, mode: "chat", message: text, signal_mismatch: signalMismatch });
+      const reply = res.data?.reply || "";
+      setChatMessages((m) => [...m, { id: "a-" + Date.now(), scan_id: scanId, role: "assistant", content: reply, kind: signalMismatch ? "revision" : "chat" }]);
+    } catch (e) {
+      setError("La chiromancienne ne peut pas répondre pour le moment.");
+      setChatMessages((m) => m.filter((x) => x.id !== userMsg.id));
+    }
+    setChatBusy(false);
+  };
 
   const handleReveal = async () => {
-    // Payment is a placeholder until store in-app purchases are configured.
     setBusy(true);
     setError("");
     try {
-      if (!report) {
-        const rep = await base44.entities.Report.create({ reading_id: reading.id, scan_id: scanId, purchase_status: 'locked' });
+      let rep = report;
+      if (!rep) {
+        rep = await base44.entities.Report.create({ reading_id: reading.id, scan_id: scanId, purchase_status: "locked" });
         setReport(rep);
       }
+      // Génère la lecture approfondie via GPT-4.1 si elle n'existe pas encore.
+      if (!reading.full_content) {
+        setDeepBusy(true);
+        try {
+          await base44.functions.invoke("chatPalm", { scan_id: scanId, mode: "deep" });
+          const rp = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: "-created_date", limit: 1 });
+          if (rp.items?.length) setReading(rp.items[0]);
+        } catch (e) {
+          setError("La génération de la lecture approfondie a échoué.");
+          setDeepBusy(false);
+          setBusy(false);
+          return;
+        }
+        setDeepBusy(false);
+      }
       setError("Le paiement (4,99 €) sera activé lors du branchement des achats intégrés Google Play / App Store. En mode développement, le rapport complet est débloqué manuellement.");
-      // Dev unlock for demonstration
-      await base44.entities.Report.update(report?.id || (await base44.entities.Report.filter({ reading_id: reading.id }, { limit: 1 })).items[0].id, { purchase_status: 'unlocked' });
+      await base44.entities.Report.update(rep.id, { purchase_status: "unlocked" });
       const repPage = await base44.entities.Report.filter({ reading_id: reading.id }, { limit: 1 });
       if (repPage.items?.length) setReport(repPage.items[0]);
-    } catch (e) { setError("Action impossible pour le moment."); }
+    } catch (e) {
+      setError("Action impossible pour le moment.");
+    }
     setBusy(false);
   };
 
@@ -83,14 +144,16 @@ export default function Reading() {
         rightPhotoUrl: rightUrl, leftPhotoUrl: leftUrl,
         scanDate: scan.created_date,
       });
-      const file = new File([blob], `rapport-${scanId}.pdf`, { type: 'application/pdf' });
+      const file = new File([blob], `rapport-${scanId}.pdf`, { type: "application/pdf" });
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
       await base44.entities.Report.update(report.id, { pdf_file_uri: file_uri });
       const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
       setPdfUrl(r.signed_url);
       const repPage = await base44.entities.Report.filter({ reading_id: reading.id }, { limit: 1 });
       if (repPage.items?.length) setReport(repPage.items[0]);
-    } catch (e) { setError("La génération du PDF a échoué."); }
+    } catch (e) {
+      setError("La génération du PDF a échoué.");
+    }
     setPdfBusy(false);
   };
 
@@ -99,9 +162,10 @@ export default function Reading() {
     <div className="px-6 pt-20 text-center text-sm text-muted-foreground">{error} <Link to="/mes-mains" className="text-primary underline">Retour</Link></div>
   );
 
-  const unlocked = report?.purchase_status === 'unlocked';
-  const rightObs = observations.filter((o) => o.hand === 'right');
-  const leftObs = observations.filter((o) => o.hand === 'left');
+  const unlocked = report?.purchase_status === "unlocked";
+  const rightObs = observations.filter((o) => o.hand === "right");
+  const leftObs = observations.filter((o) => o.hand === "left");
+  const chatVisible = chatMessages.filter((m) => m.kind === "chat" || m.kind === "revision");
 
   return (
     <div className="px-5 pt-10 pb-8 max-w-md mx-auto">
@@ -111,20 +175,25 @@ export default function Reading() {
 
       <h1 className="font-display text-3xl mb-1">Votre lecture</h1>
       <p className="text-xs text-muted-foreground mb-5">
-        {new Date(scan.created_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+        {scan?.created_date ? new Date(scan.created_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : ""}
       </p>
 
-      {scan.status === 'analyzing' && (
+      {scan?.status === "analyzing" && (
         <div className="flex items-center gap-2 text-sm text-primary mb-4"><Loader2 className="animate-spin" size={16} /> Analyse en cours…</div>
       )}
-      {scan.status === 'failed' && (
+      {scan?.status === "failed" && (
         <div className="flex items-start gap-2 text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2 mb-4">
           <AlertCircle size={14} className="mt-0.5" />
-          <span>Cette photo n'a pas pu être analysée. {scan.quality_notes || ''}</span>
+          <span>Cette photo n'a pas pu être analysée. {scan.quality_notes || ""}</span>
         </div>
       )}
 
-      {reading ? (
+      {generating ? (
+        <div className="glass-card p-6 text-center">
+          <Loader2 className="animate-spin text-primary mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Génération de votre lecture par la chiromancienne…</p>
+        </div>
+      ) : reading ? (
         <>
           <div className="mb-6">
             <h2 className="font-display text-xl text-primary/90 mb-3">Main droite</h2>
@@ -140,12 +209,16 @@ export default function Reading() {
           {selected && (
             <div className="glass-card p-4 mb-6">
               <p className="font-display text-lg text-primary">{selected.line_label || selected.line_name}</p>
-              <p className="text-xs text-muted-foreground mt-1">Confiance : {(selected.confidence * 100).toFixed(0)}%{selected.uncertain ? ' · incertain' : ''}</p>
+              <p className="text-xs text-muted-foreground mt-1">Confiance : {(selected.confidence * 100).toFixed(0)}%{selected.uncertain ? " · incertain" : ""}</p>
               {selected.characteristics && <p className="text-sm mt-2 leading-relaxed">{selected.characteristics}</p>}
             </div>
           )}
 
           <ReadingMarkdown>{reading.free_content}</ReadingMarkdown>
+
+          <div className="gold-divider my-6" />
+
+          <ChatPanel messages={chatVisible} onSend={sendChat} busy={chatBusy} />
 
           <div className="gold-divider my-6" />
 
@@ -161,7 +234,7 @@ export default function Reading() {
               ) : (
                 <button onClick={generatePdf} disabled={pdfBusy} className="btn-gold w-full flex items-center justify-center gap-2 py-3">
                   {pdfBusy ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
-                  {report?.pdf_file_uri ? 'Rouvrir le rapport PDF' : 'Générer mon rapport PDF'}
+                  {report?.pdf_file_uri ? "Rouvrir le rapport PDF" : "Générer mon rapport PDF"}
                 </button>
               )}
               <p className="text-[11px] text-muted-foreground mt-3 text-center leading-relaxed">
@@ -169,9 +242,9 @@ export default function Reading() {
               </p>
             </div>
           ) : (
-            <button onClick={handleReveal} disabled={busy} className="btn-gold w-full flex items-center justify-center gap-2 py-4">
-              {busy ? <Loader2 className="animate-spin" size={18} /> : <Lock size={16} />}
-              Révéler tous les secrets de mes mains — 4,99 €
+            <button onClick={handleReveal} disabled={busy || deepBusy} className="btn-gold w-full flex items-center justify-center gap-2 py-4">
+              {busy || deepBusy ? <Loader2 className="animate-spin" size={18} /> : <Lock size={16} />}
+              {deepBusy ? "Génération de la lecture approfondie…" : "Révéler tous les secrets de mes mains — 4,99 €"}
             </button>
           )}
           {error && <p className="text-[11px] text-muted-foreground mt-3 text-center leading-relaxed">{error}</p>}
@@ -180,6 +253,7 @@ export default function Reading() {
         <div className="glass-card p-6 text-center">
           <Sparkles size={24} className="mx-auto text-primary/50 mb-3" />
           <p className="text-sm text-muted-foreground">Aucune lecture générée pour ce scan.</p>
+          <button onClick={generateInitialReading} className="btn-gold mt-3 px-4 py-2 text-sm">Générer ma lecture</button>
         </div>
       )}
     </div>

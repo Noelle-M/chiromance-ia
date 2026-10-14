@@ -44,6 +44,27 @@ RÈGLES DE MISE EN FORME OBLIGATOIRES :
 - N'utilise jamais de simple saut de ligne à l'intérieur d'un paragraphe.
 - Pour une réponse courte de suivi, tu peux répondre en prose sans titre, mais conserve des paragraphes aérés.`;
 
+const READING_PROMPT = `Réalise la lecture complète et intéressante de cette main, structurée ainsi :
+- Une introduction intrigante et personnalisée qui s'appuie sur ce qui est réellement visible.
+- ## Les empreintes de votre passé — un véritable paragraphe développé interprétant les signes associés aux premières périodes, aux changements de direction et aux étapes marquantes.
+- ## Ce que révèle votre présent — un paragraphe développé sur les tendances de la période actuelle (relations, décisions, tensions) selon les signes observés.
+- ## Les chemins de votre avenir — un paragraphe développé sur les prolongements, bifurcations et intersections, dans le langage symbolique de la tradition.
+Appuie-toi sur les lignes réellement observées et sur ce que tu vois sur la photographie. À la fin, tu peux poser une seule question complémentaire pertinente et facultative pour affiner ta lecture.`;
+
+const DEEP_PROMPT = `Rédige maintenant la lecture approfondie complète (le rapport de consultation), structurée en sections ## :
+- ## Introduction — ton de chiromancienne, présentation de la main et de ce qui s'y dessine.
+- ## Les empreintes de votre passé — analyse détaillée : segments des lignes associés aux périodes, changements de direction, ruptures de continuité, étapes marquantes.
+- ## Ce que révèle votre présent — tendances actuelles, relations, décisions, projets, tensions possibles selon les signes.
+- ## Les chemins de votre avenir — prolongements, bifurcations, intersections, possibilités traditionnellement associées, toujours au conditionnel symbolique.
+- ## La vie affective à travers la ligne de cœur — interprétation des signes affectifs et relationnels réellement observés.
+- ## Les aspirations et le destin — ligne du destin, ligne du Soleil, rapport au travail et aux ambitions selon les signes.
+- ## Bifurcations et intersections — les croisements significatifs entre lignes et ce qu'ils évoquent traditionnellement.
+- ## Le dialogue des deux mains — lorsque deux mains sont disponibles : différences, compléments, ce que l'une montre de l'autre. Sinon, omet cette section.
+- ## Synthèse — synthèse approfondie et personnalisée du parcours symbolique, dans le ton d'une chiromancienne refermant la consultation.
+Chaque section : paragraphes développés, narratifs, ancrés dans les observations réelles et la photographie.`;
+
+const MISMATCH_NOTE = `\n\n[Note système] L'utilisateur signale que cette interprétation ne correspond pas à son vécu. Réexamine tes observations réelles et la photographie, reconnais les incertitudes, et propose une autre lecture traditionnelle lorsque les signes le permettent. N'invente jamais de nouveaux signes pour lui donner raison.`;
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -62,59 +83,61 @@ export default async function(req) {
     const observations = obsPage.items || [];
 
     // Photographies signées transmises à GPT pour examen direct de la main.
-    const photoParts = [];
+    const photoUrls = [];
     if (scan.right_hand_photo) {
       const r = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: scan.right_hand_photo, expires_in: 600 });
-      photoParts.push({ hand: 'droite', url: r.signed_url });
+      photoUrls.push(r.signed_url);
     }
     if (scan.scan_type === 'full' && scan.left_hand_photo) {
       const r = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: scan.left_hand_photo, expires_in: 600 });
-      photoParts.push({ hand: 'gauche', url: r.signed_url });
+      photoUrls.push(r.signed_url);
     }
 
     // Historique conversationnel persistant lié au scan.
     const histPage = await base44.entities.ChatMessage.filter({ scan_id: scanId }, { sort: 'created_date', limit: 50 });
     const history = histPage.items || [];
-    const isFirstTurn = history.length === 0;
 
     const obsSummary = observations
       .map((o) => `- Main ${o.hand === 'right' ? 'droite' : 'gauche'} — ${o.line_label || o.line_name} (confiance ${((o.confidence || 0) * 100).toFixed(0)}%${o.uncertain ? ', incertain' : ''}) : ${o.characteristics || ''}`)
       .join('\n');
 
-    const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
-
-    if (isFirstTurn) {
-      // Premier tour : on demande la lecture complète initiale.
-      const userContent = [
-        {
-          type: 'text',
-          text: `Voici la photographie de la main à lire.\nObservations du Moteur A (détection visuelle des lignes) :\n${obsSummary || '(aucune ligne détectée)'}\n\nRéalise une lecture complète et intéressante du passé, du présent et de l'avenir selon les traditions de chiromancie, en t'appuyant sur les lignes réellement observées et sur ce que tu vois sur la photographie. À la fin, tu peux poser une seule question complémentaire pertinente et facultative pour affiner ta lecture.`,
-        },
-      ];
-      for (const p of photoParts) {
-        userContent.push({ type: 'image_url', image_url: { url: p.url } });
-      }
-      messages.push({ role: 'user', content: userContent });
-    } else {
-      // Tours suivants : on rejoue l'historique puis on ajoute le nouveau message.
-      for (const m of history) {
-        messages.push({ role: m.role, content: m.content });
-      }
-      const userMsg = (body.message || '').trim();
-      if (!userMsg) return Response.json({ error: 'message requis' }, { status: 400 });
-      let content = userMsg;
-      if (body.signal_mismatch) {
-        content += '\n\n[Note système] L\'utilisateur signale que cette interprétation ne correspond pas à son vécu. Réexamine tes observations réelles et la photographie, reconnais les incertitudes, et propose une autre lecture traditionnelle lorsque les signes le permettent. N\'invente jamais de nouveaux signes pour lui donner raison.';
-      }
-      messages.push({ role: 'user', content });
+    // Détermination du mode.
+    let mode = body.mode;
+    if (!mode) {
+      mode = body.message && body.message.trim() ? 'chat' : (history.length === 0 ? 'reading' : 'chat');
     }
 
+    const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+
+    // Rejoue l'historique (texte uniquement) pour conserver le contexte du scan.
+    for (const m of history) {
+      messages.push({ role: m.role, content: m.content });
+    }
+
+    let userText = '';
+    if (mode === 'reading') {
+      userText = `Voici la photographie de la main à lire.\nObservations du Moteur A (détection visuelle des lignes) :\n${obsSummary || '(aucune ligne détectée)'}\n\n${READING_PROMPT}`;
+    } else if (mode === 'deep') {
+      userText = `Voici à nouveau la photographie et les observations du Moteur A :\n${obsSummary || '(aucune ligne détectée)'}\n\n${DEEP_PROMPT}`;
+    } else {
+      const userMsg = (body.message || '').trim();
+      if (!userMsg) return Response.json({ error: 'message requis' }, { status: 400 });
+      userText = userMsg + (body.signal_mismatch ? MISMATCH_NOTE : '');
+    }
+
+    const userContent = [{ type: 'text', text: userText }];
+    for (const url of photoUrls) {
+      userContent.push({ type: 'image_url', image_url: { url } });
+    }
+    messages.push({ role: 'user', content: userContent });
+
+    const maxTokens = mode === 'deep' ? 3000 : mode === 'reading' ? 2000 : 1200;
     const apiKey = secrets.get('OPENAI_API_KEY');
     const oaRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages, max_tokens: 1600, temperature: 0.8 }),
-      signal: AbortSignal.timeout(60000),
+      body: JSON.stringify({ model: MODEL, messages, max_tokens: maxTokens, temperature: 0.8 }),
+      signal: AbortSignal.timeout(90000),
     });
 
     if (!oaRes.ok) {
@@ -125,7 +148,7 @@ export default async function(req) {
     const reply = oaJson.choices?.[0]?.message?.content || '';
 
     // Persistance des échanges liés au scan.
-    if (!isFirstTurn && body.message) {
+    if (mode === 'chat') {
       await base44.entities.ChatMessage.create({
         scan_id: scanId,
         role: 'user',
@@ -133,7 +156,7 @@ export default async function(req) {
         kind: body.signal_mismatch ? 'revision' : 'chat',
       });
     }
-    const kind = isFirstTurn ? 'reading' : (body.signal_mismatch ? 'revision' : 'chat');
+    const kind = mode === 'reading' ? 'reading' : mode === 'deep' ? 'deep' : (body.signal_mismatch ? 'revision' : 'chat');
     await base44.entities.ChatMessage.create({
       scan_id: scanId,
       role: 'assistant',
@@ -141,7 +164,27 @@ export default async function(req) {
       kind,
     });
 
-    return Response.json({ reply, kind });
+    // Synchronise la lecture (Reading) selon le mode.
+    const readPage = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: '-created_date', limit: 1 });
+    const existing = readPage.items?.[0];
+    let readingId = existing?.id;
+    if (mode === 'reading') {
+      if (existing) {
+        await base44.entities.Reading.update(existing.id, { free_content: reply });
+      } else {
+        const created = await base44.entities.Reading.create({ scan_id: scanId, free_content: reply, full_content: '', summary: '', version: '1' });
+        readingId = created.id;
+      }
+    } else if (mode === 'deep') {
+      if (existing) {
+        await base44.entities.Reading.update(existing.id, { full_content: reply });
+      } else {
+        const created = await base44.entities.Reading.create({ scan_id: scanId, free_content: '', full_content: reply, summary: '', version: '1' });
+        readingId = created.id;
+      }
+    }
+
+    return Response.json({ reply, kind, reading_id: readingId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
