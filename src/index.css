@@ -135,15 +135,52 @@
 }
 
 .prose-reading {
-  @apply text-foreground text-[15px] leading-relaxed;
+  @apply text-foreground/90 text-[15px] leading-[1.85];
+  font-feature-settings: "liga" 1, "calt" 1;
 }
+.prose-reading > *:first-child { @apply mt-0; }
 .prose-reading h1, .prose-reading h2, .prose-reading h3 {
-  @apply font-display text-primary mt-5 mb-2;
+  @apply font-display text-primary mt-7 mb-3 leading-tight;
 }
-.prose-reading h2 { @apply text-xl; }
+.prose-reading h1 { @apply text-2xl; }
+.prose-reading h2 {
+  @apply text-xl pb-2 border-b border-primary/25;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.prose-reading h2::before {
+  content: ""; display: inline-block;
+  width: 0.45rem; height: 0.45rem; border-radius: 9999px;
+  background: hsl(var(--primary));
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.6);
+  flex: none;
+}
 .prose-reading h3 { @apply text-lg; }
-.prose-reading p { @apply mb-3; }
-.prose-reading ul { @apply list-disc pl-5 mb-3 space-y-1; }
-.prose-reading ol { @apply list-decimal pl-5 mb-3 space-y-1; }
-.prose-reading strong { @apply text-primary; }
-.prose-reading em { @apply text-muted-foreground; }
+.prose-reading p { @apply mb-4; }
+.prose-reading p + p { @apply mt-0; }
+.prose-reading ul {
+  @apply mb-4 space-y-2 pl-0;
+  list-style: none;
+}
+.prose-reading ul > li {
+  @apply relative pl-6;
+}
+.prose-reading ul > li::before {
+  content: "✦"; position: absolute; left: 0; top: 0;
+  color: hsl(var(--primary)); font-size: 0.8em; line-height: 1.7;
+}
+.prose-reading ol {
+  @apply list-decimal pl-5 mb-4 space-y-2 marker:text-primary;
+}
+.prose-reading li { @apply leading-relaxed; }
+.prose-reading li::marker { @apply text-primary; }
+.prose-reading strong { @apply text-primary font-medium; }
+.prose-reading em { @apply text-muted-foreground italic; }
+.prose-reading blockquote {
+  @apply my-5 pl-4 py-1 border-l-2 border-primary/50 italic text-muted-foreground;
+}
+.prose-reading hr {
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.7), transparent);
+  height: 1px; border: 0; margin: 1.75rem 0;
+}
+.prose-reading a { @apply text-primary underline underline-offset-2; }
+.prose-reading code { @apply text-primary bg-primary/10 rounded px-1 py-0.5 text-[0.9em]; }
