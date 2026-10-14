@@ -13,6 +13,7 @@ import Scanner from '@/pages/Scanner';
 import Reading from '@/pages/Reading';
 import Compatibility from '@/pages/Compatibility';
 import Learn from '@/pages/Learn';
+import Grimoire from '@/pages/Grimoire';
 import Account from '@/pages/Account';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -48,6 +49,7 @@ const AuthenticatedApp = () => {
         <Route path="/lecture/:scanId" element={<Reading />} />
         <Route path="/compatibilite" element={<Compatibility />} />
         <Route path="/apprendre" element={<Learn />} />
+        <Route path="/grimoire" element={<Grimoire />} />
         <Route path="/mon-compte" element={<Account />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

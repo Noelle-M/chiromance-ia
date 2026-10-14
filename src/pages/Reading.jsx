@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Lock, Download, Sparkles, AlertCircle } from "lucid
 import ReactMarkdown from "react-markdown";
 import { base44 } from "@/api/base44Client";
 import PalmCanvas from "@/components/PalmCanvas";
+import { generateReportPdf } from "@/lib/generateReportPdf";
 
 export default function Reading() {
   const { scanId } = useParams();
@@ -17,6 +18,8 @@ export default function Reading() {
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -35,7 +38,15 @@ export default function Reading() {
       if (readPage.items?.length) {
         setReading(readPage.items[0]);
         const repPage = await base44.entities.Report.filter({ reading_id: readPage.items[0].id }, { limit: 1 });
-        if (repPage.items?.length) setReport(repPage.items[0]);
+        if (repPage.items?.length) {
+          setReport(repPage.items[0]);
+          if (repPage.items[0].pdf_file_uri) {
+            try {
+              const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: repPage.items[0].pdf_file_uri });
+              setPdfUrl(r.signed_url);
+            } catch (e) {}
+          }
+        }
       }
     } catch (e) { setError("Lecture introuvable."); }
     setLoading(false);
@@ -59,6 +70,26 @@ export default function Reading() {
       if (repPage.items?.length) setReport(repPage.items[0]);
     } catch (e) { setError("Action impossible pour le moment."); }
     setBusy(false);
+  };
+
+  const generatePdf = async () => {
+    setPdfBusy(true);
+    setError("");
+    try {
+      const blob = await generateReportPdf({
+        reading, observations,
+        rightPhotoUrl: rightUrl, leftPhotoUrl: leftUrl,
+        scanDate: scan.created_date,
+      });
+      const file = new File([blob], `rapport-${scanId}.pdf`, { type: 'application/pdf' });
+      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
+      await base44.entities.Report.update(report.id, { pdf_file_uri: file_uri });
+      const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
+      setPdfUrl(r.signed_url);
+      const repPage = await base44.entities.Report.filter({ reading_id: reading.id }, { limit: 1 });
+      if (repPage.items?.length) setReport(repPage.items[0]);
+    } catch (e) { setError("La génération du PDF a échoué."); }
+    setPdfBusy(false);
   };
 
   if (loading) return <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-primary" /></div>;
@@ -124,8 +155,19 @@ export default function Reading() {
               <div className="prose-reading">
                 <ReactMarkdown>{reading.full_content}</ReactMarkdown>
               </div>
-              <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1">
-                <Download size={12} /> Le téléchargement PDF sera disponible après génération du document.
+              <div className="gold-divider my-5" />
+              {pdfUrl ? (
+                <a href={pdfUrl} download={`rapport-chiromance-${scanId}.pdf`} target="_blank" rel="noreferrer" className="btn-gold w-full flex items-center justify-center gap-2 py-3">
+                  <Download size={16} /> Télécharger mon rapport PDF
+                </a>
+              ) : (
+                <button onClick={generatePdf} disabled={pdfBusy} className="btn-gold w-full flex items-center justify-center gap-2 py-3">
+                  {pdfBusy ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                  {report?.pdf_file_uri ? 'Rouvrir le rapport PDF' : 'Générer mon rapport PDF'}
+                </button>
+              )}
+              <p className="text-[11px] text-muted-foreground mt-3 text-center leading-relaxed">
+                Votre rapport est enregistré dans votre compte. Téléchargeable à volonté, sans nouveau paiement.
               </p>
             </div>
           ) : (

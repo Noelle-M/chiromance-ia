@@ -26,7 +26,30 @@ export default function Compatibility() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get("code");
+    if (codeParam) { setCode(codeParam); setView("accept"); }
+    load();
+  }, []);
+
+  // Participant A: poll the invitation until the invitee accepts and the reading is ready.
+  useEffect(() => {
+    if (view !== "waiting" || !compat) return;
+    const id = setInterval(async () => {
+      try {
+        const fresh = await base44.entities.Compatibility.get(compat.id);
+        if (fresh.status === "completed" && fresh.result_content) {
+          setCompat(fresh);
+          setView("result");
+        } else if (fresh.status === "cancelled") {
+          setView("home");
+          setCompat(null);
+        }
+      } catch (e) {}
+    }, 5000);
+    return () => clearInterval(id);
+  }, [view, compat]);
 
   const createInvitation = async () => {
     setBusy(true);

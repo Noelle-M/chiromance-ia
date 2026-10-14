@@ -31,13 +31,13 @@ export default function MyHands() {
         <Plus size={18} /> Nouvelle lecture
       </Link>
 
-      <Link to="/apprendre" className="glass-card flex items-center gap-4 p-4 mb-6 hover:border-primary/40 transition-colors">
+      <Link to="/grimoire" className="glass-card flex items-center gap-4 p-4 mb-6 hover:border-primary/40 transition-colors">
         <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary">
           <BookMarked size={20} />
         </div>
         <div className="flex-1 text-left">
           <p className="font-display text-lg">Mon grimoire</p>
-          <p className="text-xs text-muted-foreground">Vos lignes, fiches et lectures</p>
+          <p className="text-xs text-muted-foreground">Vos mains annotées et leurs interprétations</p>
         </div>
       </Link>
 
