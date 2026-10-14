@@ -25,6 +25,12 @@ export default function Reading() {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatBusy, setChatBusy] = useState(false);
+  const [chatSubscribed, setChatSubscribed] = useState(false);
+  const [freeQuestionCount, setFreeQuestionCount] = useState(0);
+  const [subscribeBusy, setSubscribeBusy] = useState(false);
+  const [subNotice, setSubNotice] = useState("");
+
+  const FREE_QUESTIONS = 3;
 
   const loadAll = async () => {
     setLoading(true);
@@ -46,6 +52,13 @@ export default function Reading() {
       const msgPage = await base44.entities.ChatMessage.filter({ scan_id: scanId }, { sort: "created_date", limit: 50 });
       const msgs = msgPage.items || [];
       setChatMessages(msgs);
+
+      try {
+        const me = await base44.auth.me();
+        setChatSubscribed(!!me.chat_subscribed);
+        const used = await base44.entities.ChatMessage.count({ role: 'user', kind: { $in: ['chat', 'revision'] } });
+        setFreeQuestionCount(used || 0);
+      } catch (e) {}
 
       if (currentReading) {
         setReading(currentReading);
@@ -86,10 +99,12 @@ export default function Reading() {
   useEffect(() => { loadAll(); }, [scanId]);
 
   const sendChat = async (text, signalMismatch) => {
+    if (!chatSubscribed && freeQuestionCount >= FREE_QUESTIONS) return;
     setChatBusy(true);
     setError("");
     const userMsg = { id: "tmp-" + Date.now(), scan_id: scanId, role: "user", content: text, kind: signalMismatch ? "revision" : "chat" };
     setChatMessages((m) => [...m, userMsg]);
+    if (!chatSubscribed) setFreeQuestionCount((c) => c + 1);
     try {
       const res = await base44.functions.invoke("chatPalm", { scan_id: scanId, mode: "chat", message: text, signal_mismatch: signalMismatch });
       const reply = res.data?.reply || "";
@@ -99,6 +114,19 @@ export default function Reading() {
       setChatMessages((m) => m.filter((x) => x.id !== userMsg.id));
     }
     setChatBusy(false);
+  };
+
+  const subscribeChat = async () => {
+    setSubscribeBusy(true);
+    setSubNotice("");
+    try {
+      await base44.auth.updateMe({ chat_subscribed: true });
+      setChatSubscribed(true);
+      setSubNotice("Le paiement (6,99 €/mois) sera activé lors du branchement des achats intégrés Google Play / App Store. En mode développement, l'abonnement est débloqué manuellement.");
+    } catch (e) {
+      setSubNotice("Souscription impossible pour le moment.");
+    }
+    setSubscribeBusy(false);
   };
 
   const handleReveal = async () => {
@@ -218,7 +246,17 @@ export default function Reading() {
 
           <div className="gold-divider my-6" />
 
-          <ChatPanel messages={chatVisible} onSend={sendChat} busy={chatBusy} />
+          <ChatPanel
+            messages={chatVisible}
+            onSend={sendChat}
+            busy={chatBusy}
+            blocked={!chatSubscribed && freeQuestionCount >= FREE_QUESTIONS}
+            remaining={Math.max(0, FREE_QUESTIONS - freeQuestionCount)}
+            subscribed={chatSubscribed}
+            onSubscribe={subscribeChat}
+            subscribeBusy={subscribeBusy}
+            subNotice={subNotice}
+          />
 
           <div className="gold-divider my-6" />
 
@@ -244,7 +282,7 @@ export default function Reading() {
           ) : (
             <button onClick={handleReveal} disabled={busy || deepBusy} className="btn-gold w-full flex items-center justify-center gap-2 py-4">
               {busy || deepBusy ? <Loader2 className="animate-spin" size={18} /> : <Lock size={16} />}
-              {deepBusy ? "Génération de la lecture approfondie…" : "Révéler tous les secrets de mes mains — 4,99 €"}
+              {deepBusy ? "Génération de la lecture approfondie…" : "Révéler mon rapport complet — 4,99 € (paiement unique)"}
             </button>
           )}
           {error && <p className="text-[11px] text-muted-foreground mt-3 text-center leading-relaxed">{error}</p>}

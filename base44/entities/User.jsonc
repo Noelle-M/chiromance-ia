@@ -7,6 +7,11 @@
         "admin",
         "user"
       ]
+    },
+    "chat_subscribed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user has an active unlimited-questions subscription (6.99 EUR/month)"
     }
   },
   "required": [
