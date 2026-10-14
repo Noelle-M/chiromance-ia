@@ -2,12 +2,16 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, BookMarked, Hand, Loader2, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { ConfirmDialog, ErrorDialog } from "@/components/Dialogs";
 
 const TYPE_LABELS = { full: "Lecture complète", quick: "Lecture rapide", compatibility: "Compatibilité" };
 
 export default function MyHands() {
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toDelete, setToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -18,10 +22,15 @@ export default function MyHands() {
     setLoading(false);
   };
 
-  const handleDelete = async (e, scanId) => {
+  const askDelete = (e, scanId) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm("Supprimer définitivement cette analyse et ses lectures ?")) return;
+    setToDelete(scanId);
+  };
+
+  const confirmDelete = async () => {
+    const scanId = toDelete;
+    setDeleting(true);
     try {
       const obsPage = await base44.entities.Observation.filter({ scan_id: scanId }, { limit: 100, fields: ['id'] });
       if (obsPage.items?.length) await base44.entities.Observation.deleteMany({ scan_id: scanId });
@@ -33,9 +42,12 @@ export default function MyHands() {
       }
       await base44.entities.Scan.delete(scanId);
       setScans((prev) => prev.filter((s) => s.id !== scanId));
+      setToDelete(null);
     } catch (err) {
-      window.alert("Suppression impossible pour le moment.");
+      setToDelete(null);
+      setError("Suppression impossible pour le moment.");
     }
+    setDeleting(false);
   };
 
   useEffect(() => { load(); }, []);
@@ -86,7 +98,7 @@ export default function MyHands() {
                 <StatusBadge status={s.status} />
               </div>
               <button
-                onClick={(e) => handleDelete(e, s.id)}
+                onClick={(e) => askDelete(e, s.id)}
                 className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 aria-label="Supprimer cette analyse"
               >
@@ -96,6 +108,22 @@ export default function MyHands() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!toDelete}
+        onOpenChange={(o) => { if (!deleting) setToDelete(o ? toDelete : null); }}
+        title="Supprimer cette analyse ?"
+        description="Cette analyse et ses lectures, observations et rapports liés seront supprimés définitivement. Cette action est irréversible."
+        confirmLabel="Supprimer"
+        destructive
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
+      <ErrorDialog
+        open={!!error}
+        onOpenChange={setError}
+        description={error}
+      />
     </div>
   );
 }

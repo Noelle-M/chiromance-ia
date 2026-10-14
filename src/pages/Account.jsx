@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Loader2, LogOut, Trash2, Download, Lock, Hand } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { ConfirmDialog, ErrorDialog } from "@/components/Dialogs";
 
 const TYPE_LABELS = { full: "Lecture complète", quick: "Lecture rapide", compatibility: "Compatibilité" };
 
@@ -13,6 +14,11 @@ export default function Account() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [scanToDelete, setScanToDelete] = useState(null);
+  const [deletingScan, setDeletingScan] = useState(false);
+  const [accountDeleteOpen, setAccountDeleteOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [error, setError] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -39,17 +45,23 @@ export default function Account() {
     window.location.href = '/login';
   };
 
-  const deleteScan = async (id) => {
-    if (!confirm('Supprimer ce scan et ses données associées ?')) return;
+  const confirmDeleteScan = async () => {
+    const id = scanToDelete;
+    setDeletingScan(true);
     try {
       await base44.entities.Observation.deleteMany({ scan_id: id });
       await base44.entities.Scan.delete(id);
       setScans(scans.filter((s) => s.id !== id));
-    } catch (e) { alert('Suppression impossible.'); }
+      setScanToDelete(null);
+    } catch (e) {
+      setScanToDelete(null);
+      setError("Suppression impossible.");
+    }
+    setDeletingScan(false);
   };
 
-  const deleteAccount = async () => {
-    if (!confirm('Supprimer définitivement votre compte et toutes vos données ? Cette action est irréversible.')) return;
+  const confirmDeleteAccount = async () => {
+    setDeletingAccount(true);
     try {
       for (const s of scans) {
         await base44.entities.Observation.deleteMany({ scan_id: s.id }).catch(() => {});
@@ -57,7 +69,11 @@ export default function Account() {
       }
       await base44.auth.logout();
       window.location.href = '/login';
-    } catch (e) { alert('Suppression impossible pour le moment.'); }
+    } catch (e) {
+      setAccountDeleteOpen(false);
+      setError("Suppression impossible pour le moment.");
+    }
+    setDeletingAccount(false);
   };
 
   if (loading) return <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-primary" /></div>;
@@ -110,7 +126,7 @@ export default function Account() {
                 ) : null}
               </div>
             </div>
-            <button onClick={() => deleteScan(s.id)} className="text-muted-foreground hover:text-destructive">
+            <button onClick={() => setScanToDelete(s.id)} className="text-muted-foreground hover:text-destructive">
               <Trash2 size={16} />
             </button>
           </div>
@@ -121,10 +137,32 @@ export default function Account() {
         <button onClick={logout} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
           <LogOut size={16} /> Se déconnecter
         </button>
-        <button onClick={deleteAccount} className="w-full py-3 flex items-center justify-center gap-2 text-destructive border border-destructive/30 rounded-full text-sm">
+        <button onClick={() => setAccountDeleteOpen(true)} className="w-full py-3 flex items-center justify-center gap-2 text-destructive border border-destructive/30 rounded-full text-sm">
           <Trash2 size={16} /> Supprimer mon compte et mes données
         </button>
       </div>
+
+      <ConfirmDialog
+        open={!!scanToDelete}
+        onOpenChange={(o) => { if (!deletingScan) setScanToDelete(o ? scanToDelete : null); }}
+        title="Supprimer ce scan ?"
+        description="Ce scan et ses données associées seront supprimés définitivement. Cette action est irréversible."
+        confirmLabel="Supprimer"
+        destructive
+        loading={deletingScan}
+        onConfirm={confirmDeleteScan}
+      />
+      <ConfirmDialog
+        open={accountDeleteOpen}
+        onOpenChange={(o) => { if (!deletingAccount) setAccountDeleteOpen(o); }}
+        title="Supprimer votre compte ?"
+        description="Votre compte et toutes vos données (scans, lectures, rapports) seront supprimés définitivement. Cette action est irréversible."
+        confirmLabel="Tout supprimer"
+        destructive
+        loading={deletingAccount}
+        onConfirm={confirmDeleteAccount}
+      />
+      <ErrorDialog open={!!error} onOpenChange={setError} description={error} />
 
       <p className="text-[11px] text-muted-foreground text-center mt-6 leading-relaxed">
         Vos photographies sont stockées de manière privée et accessibles uniquement à vous. Elles ne sont pas utilisées pour entraîner des modèles.
