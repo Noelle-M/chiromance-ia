@@ -1,0 +1,72 @@
+{
+  "name": "Purchase",
+  "type": "object",
+  "properties": {
+    "report_id": {
+      "type": "string"
+    },
+    "scan_id": {
+      "type": "string"
+    },
+    "transaction_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "default": 4.99
+    },
+    "currency": {
+      "type": "string",
+      "default": "EUR"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "succeeded",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "provider": {
+      "type": "string",
+      "default": "placeholder"
+    }
+  },
+  "required": [
+    "report_id",
+    "amount"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

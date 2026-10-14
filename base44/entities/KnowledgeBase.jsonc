@@ -1,0 +1,44 @@
+{
+  "name": "KnowledgeBase",
+  "type": "object",
+  "properties": {
+    "tradition": {
+      "type": "string"
+    },
+    "element": {
+      "type": "string",
+      "description": "chiromantic element: line, mount, hand shape, sign"
+    },
+    "variant": {
+      "type": "string"
+    },
+    "meaning": {
+      "type": "string"
+    },
+    "references": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "element",
+    "meaning"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

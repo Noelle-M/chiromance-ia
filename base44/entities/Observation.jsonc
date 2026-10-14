@@ -1,0 +1,108 @@
+{
+  "name": "Observation",
+  "type": "object",
+  "properties": {
+    "scan_id": {
+      "type": "string",
+      "description": "id of the Scan this observation belongs to"
+    },
+    "hand": {
+      "type": "string",
+      "enum": [
+        "right",
+        "left"
+      ]
+    },
+    "line_name": {
+      "type": "string",
+      "enum": [
+        "life",
+        "heart",
+        "head",
+        "fate",
+        "sun",
+        "mercury",
+        "secondary"
+      ]
+    },
+    "line_label": {
+      "type": "string",
+      "description": "French display name, e.g. Ligne de vie"
+    },
+    "coordinates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "normalized 0-1 polyline points over the photo"
+    },
+    "characteristics": {
+      "type": "string",
+      "description": "observed visual traits: curve, breaks, branches, depth, length"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "0-1 confidence of detection"
+    },
+    "uncertain": {
+      "type": "boolean",
+      "default": false
+    },
+    "manually_corrected": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "scan_id",
+    "hand",
+    "line_name",
+    "coordinates"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

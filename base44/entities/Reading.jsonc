@@ -1,0 +1,67 @@
+{
+  "name": "Reading",
+  "type": "object",
+  "properties": {
+    "scan_id": {
+      "type": "string",
+      "description": "id of the Scan this reading belongs to"
+    },
+    "free_content": {
+      "type": "string",
+      "description": "free reading markdown text"
+    },
+    "full_content": {
+      "type": "string",
+      "description": "full paid report markdown text"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "default": "1"
+    }
+  },
+  "required": [
+    "scan_id",
+    "free_content"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

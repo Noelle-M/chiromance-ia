@@ -1,0 +1,104 @@
+{
+  "name": "Compatibility",
+  "type": "object",
+  "properties": {
+    "participant_a_id": {
+      "type": "string",
+      "description": "user id of the initiator"
+    },
+    "participant_b_id": {
+      "type": "string",
+      "description": "user id of the invitee, filled when accepted"
+    },
+    "scan_a_id": {
+      "type": "string"
+    },
+    "scan_b_id": {
+      "type": "string"
+    },
+    "invitation_code": {
+      "type": "string",
+      "description": "unique shareable code"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "completed",
+        "cancelled",
+        "expired"
+      ],
+      "default": "pending"
+    },
+    "consent_a": {
+      "type": "boolean",
+      "default": true
+    },
+    "consent_b": {
+      "type": "boolean",
+      "default": false
+    },
+    "result_content": {
+      "type": "string",
+      "description": "shared compatibility reading markdown"
+    }
+  },
+  "required": [
+    "participant_a_id",
+    "invitation_code"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.participant_a_id": "{{user.id}}"
+        },
+        {
+          "data.participant_b_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.participant_a_id": "{{user.id}}"
+        },
+        {
+          "data.participant_b_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.participant_a_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

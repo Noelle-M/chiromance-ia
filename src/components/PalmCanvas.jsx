@@ -1,0 +1,88 @@
+import React, { useState } from "react";
+
+const LINE_LABELS = {
+  life: "Ligne de vie",
+  heart: "Ligne de cœur",
+  head: "Ligne de tête",
+  fate: "Ligne du destin",
+  sun: "Ligne du Soleil",
+  mercury: "Ligne de Mercure",
+  secondary: "Ligne secondaire",
+};
+
+export default function PalmCanvas({ photoUrl, observations = [], onSelect }) {
+  const [selected, setSelected] = useState(null);
+  const [showLabels, setShowLabels] = useState(true);
+
+  const handleSelect = (obs) => {
+    setSelected(obs.id);
+    onSelect?.(obs);
+  };
+
+  return (
+    <div className="relative w-full max-w-md mx-auto rounded-2xl overflow-hidden border border-border/60 bg-black/40">
+      {photoUrl ? (
+        <img src={photoUrl} alt="main" className="w-full block" />
+      ) : (
+        <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-sm">Photo indisponible</div>
+      )}
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="absolute inset-0 w-full h-full"
+      >
+        {observations.map((o, i) => {
+          const pts = o.coordinates.map((c) => `${(c.x * 100).toFixed(2)},${(c.y * 100).toFixed(2)}`).join(" ");
+          const isSel = selected === o.id;
+          return (
+            <polyline
+              key={o.id || i}
+              points={pts}
+              fill="none"
+              stroke={o.uncertain ? "hsl(var(--muted-foreground))" : "hsl(var(--primary))"}
+              strokeWidth={isSel ? 1.1 : 0.7}
+              strokeOpacity={o.uncertain ? 0.5 : 0.95}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              className="cursor-pointer transition-all"
+              style={{
+                filter: isSel ? "drop-shadow(0 0 4px hsl(var(--primary)))" : "none",
+                animation: `draw-line 1.2s ease-out ${i * 0.25}s both`,
+                strokeDasharray: 1000,
+              }}
+              onClick={() => handleSelect(o)}
+            />
+          );
+        })}
+      </svg>
+
+      {showLabels &&
+        observations.map((o, i) => {
+          if (!o.coordinates?.length) return null;
+          const mid = o.coordinates[Math.floor(o.coordinates.length / 2)];
+          return (
+            <button
+              key={`lbl-${o.id || i}`}
+              onClick={() => handleSelect(o)}
+              className="absolute -translate-x-1/2 -translate-y-1/2 text-[9px] sm:text-[10px] font-display tracking-wide whitespace-nowrap text-primary bg-background/70 backdrop-blur px-1.5 py-0.5 rounded-full border border-primary/30"
+              style={{ left: `${mid.x * 100}%`, top: `${mid.y * 100}%` }}
+            >
+              {o.line_label || LINE_LABELS[o.line_name] || o.line_name}
+            </button>
+          );
+        })}
+
+      <div className="absolute top-2 right-2">
+        <button
+          onClick={() => setShowLabels((s) => !s)}
+          className="text-[10px] text-primary bg-background/70 backdrop-blur px-2 py-1 rounded-full border border-primary/30"
+        >
+          {showLabels ? "Masquer les noms" : "Afficher les noms"}
+        </button>
+      </div>
+
+      <style>{`@keyframes draw-line { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }`}</style>
+    </div>
+  );
+}

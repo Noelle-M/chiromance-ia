@@ -1,0 +1,55 @@
+{
+  "name": "Course",
+  "type": "object",
+  "properties": {
+    "part": {
+      "type": "number",
+      "description": "part number 1-5"
+    },
+    "part_title": {
+      "type": "string"
+    },
+    "chapter": {
+      "type": "string",
+      "description": "chapter title"
+    },
+    "sheet_title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string",
+      "description": "pedagogical markdown text"
+    },
+    "illustration": {
+      "type": "string",
+      "description": "optional image url"
+    },
+    "order": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "part",
+    "sheet_title",
+    "content",
+    "order"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
