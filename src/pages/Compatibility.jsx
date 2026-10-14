@@ -65,10 +65,10 @@ export default function Compatibility() {
         consent_b: true,
         status: 'accepted',
       });
-      // Generate comparison via LLM (service role through a function would be ideal; here we invoke analyzeHand-like via InvokeLLM is not client-callable)
-      // We mark as completed with a placeholder note; full generation requires a backend function.
-      await base44.entities.Compatibility.update(c.id, { status: 'completed', result_content: "La génération de la comparaison amoureuse est en cours de finalisation côté serveur." });
-      setCompat({ ...c, status: 'completed', result_content: "La génération de la comparaison amoureuse est en cours de finalisation côté serveur." });
+      // Generate the compatibility reading server-side (service role LLM).
+      await base44.functions.invoke('analyzeCompatibility', { compatibility_id: c.id });
+      const done = await base44.entities.Compatibility.get(c.id);
+      setCompat(done);
       setView('result');
     } catch (e) { setError("Impossible d'accepter l'invitation."); }
     setBusy(false);
