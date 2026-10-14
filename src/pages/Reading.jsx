@@ -266,9 +266,15 @@ export default function Reading() {
               <ReadingMarkdown>{reading.full_content}</ReadingMarkdown>
               <div className="gold-divider my-5" />
               {pdfUrl ? (
-                <a href={pdfUrl} download={`rapport-chiromance-${scanId}.pdf`} target="_blank" rel="noreferrer" className="btn-gold w-full flex items-center justify-center gap-2 py-3">
-                  <Download size={16} /> Télécharger mon rapport PDF
-                </a>
+                <div className="space-y-3">
+                  <a href={pdfUrl} download={`rapport-chiromance-${scanId}.pdf`} target="_blank" rel="noreferrer" className="btn-gold w-full flex items-center justify-center gap-2 py-3">
+                    <Download size={16} /> Télécharger mon rapport PDF
+                  </a>
+                  <button onClick={generatePdf} disabled={pdfBusy} className="btn-ghost-gold w-full py-2 text-sm flex items-center justify-center gap-2">
+                    {pdfBusy ? <Loader2 className="animate-spin" size={15} /> : <Download size={15} />}
+                    Régénérer le PDF avec la nouvelle mise en page
+                  </button>
+                </div>
               ) : (
                 <button onClick={generatePdf} disabled={pdfBusy} className="btn-gold w-full flex items-center justify-center gap-2 py-3">
                   {pdfBusy ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
