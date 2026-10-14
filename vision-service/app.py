@@ -8,7 +8,7 @@ import json
 import cv2
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import Response, HTMLResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 app = FastAPI(title="Chiromancie IA - Vision", version="0.1.0")
@@ -25,6 +25,54 @@ def decode_image(raw: bytes):
         raise HTTPException(422, "Image illisible")
     pil.thumbnail((MAX_SIDE, MAX_SIDE))
     return cv2.cvtColor(np.asarray(pil), cv2.COLOR_RGB2BGR)
+
+
+def automatic_palm_roi(image):
+    """Heuristic palm region, returns None rather than claiming certainty.
+
+    Uses skin colour relative to image borders and the dominant central
+    foreground component. This is not a trained hand segmentation model.
+    """
+    h, w = image.shape[:2]
+    ycrcb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+    skin = cv2.inRange(ycrcb, (0, 130, 75), (255, 185, 140))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+    skin = cv2.morphologyEx(skin, cv2.MORPH_CLOSE, kernel, iterations=2)
+    n, labels, stats, centers = cv2.connectedComponentsWithStats(skin, 8)
+    candidates = []
+    for i in range(1, n):
+        x, y, bw, bh, area = map(int, stats[i])
+        cx, cy = centers[i]
+        if area > 0.06 * h * w and bw > 0.22 * w and bh > 0.28 * h:
+            score = area / (h * w) - 0.15 * abs(cx / w - 0.5)
+            candidates.append((score, i))
+    if not candidates:
+        return None
+    index = max(candidates)[1]
+    component = np.uint8(labels == index) * 255
+    ys, xs = np.where(component > 0)
+    if len(xs) < 100:
+        return None
+    x0, x1 = np.percentile(xs, [10, 90])
+    y0, y1 = np.percentile(ys, [10, 90])
+    # Conservative central palm zone, deliberately avoiding fingers and wrist.
+    bx0, bx1 = int(x0 + 0.10 * (x1 - x0)), int(x1 - 0.10 * (x1 - x0))
+    by0, by1 = int(y0 + 0.34 * (y1 - y0)), int(y0 + 0.78 * (y1 - y0))
+    region = np.zeros((h, w), np.uint8)
+    region[max(0, by0):min(h, by1), max(0, bx0):min(w, bx1)] = 255
+    region = cv2.bitwise_and(region, component)
+    if cv2.countNonZero(region) < 0.02 * h * w:
+        return None
+    return cv2.erode(region, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
+
+
+def resolve_roi(image, roi_json):
+    if roi_json:
+        return palm_roi(image, roi_json), "manual"
+    auto = automatic_palm_roi(image)
+    if auto is None:
+        raise HTTPException(422, "Paume non isolee automatiquement. Fournir une zone roi manuelle.")
+    return auto, "automatic_heuristic"
 
 
 def palm_roi(image, roi_json=None):
@@ -95,7 +143,8 @@ def health():
 async def analyze(photo: UploadFile = File(...), roi: str | None = Form(None)):
     raw = await photo.read(MAX_BYTES + 1)
     image = decode_image(raw)
-    mask = crease_candidates(image, palm_roi(image, roi))
+    region, mode = resolve_roi(image, roi)
+    mask = crease_candidates(image, region)
     height, width = mask.shape
     count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
     components = []
@@ -111,7 +160,7 @@ async def analyze(photo: UploadFile = File(...), roi: str | None = Form(None)):
     components.sort(key=lambda c: c["pixel_area"], reverse=True)
     return {
         "status": "experimental",
-        "roi_mode": "manual" if roi else "full_image",
+        "roi_mode": mode,
         "image_width": width, "image_height": height,
         "candidate_regions": components[:80],
         "lines": [],
@@ -127,9 +176,12 @@ async def analyze(photo: UploadFile = File(...), roi: str | None = Form(None)):
 @app.post("/preview")
 async def preview(photo: UploadFile = File(...), roi: str | None = Form(None)):
     image = decode_image(await photo.read(MAX_BYTES + 1))
-    mask = crease_candidates(image)
+    region, _ = resolve_roi(image, roi)
+    mask = crease_candidates(image, region)
     overlay = image.copy()
     overlay[mask > 0] = (0, 215, 255)
+    contours, _ = cv2.findContours(region, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(overlay, contours, -1, (255, 160, 0), 2)
     result = cv2.addWeighted(image, 0.55, overlay, 0.45, 0)
     success, encoded = cv2.imencode(".png", result)
     if not success:
