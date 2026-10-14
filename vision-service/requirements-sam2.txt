@@ -1,0 +1,5 @@
+# Optional heavyweight dependencies. Install in a separate Python environment
+# compatible with the upstream SAM 2 project and PyTorch.
+# See https://github.com/facebookresearch/sam2
+# pip install torch torchvision
+# pip install git+https://github.com/facebookresearch/sam2.git
