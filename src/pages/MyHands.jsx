@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, BookMarked, Hand, Loader2 } from "lucide-react";
+import { Plus, BookMarked, Hand, Loader2, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 const TYPE_LABELS = { full: "Lecture complète", quick: "Lecture rapide", compatibility: "Compatibilité" };
@@ -16,6 +16,26 @@ export default function MyHands() {
       setScans(page.items || []);
     } catch (e) { setScans([]); }
     setLoading(false);
+  };
+
+  const handleDelete = async (e, scanId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm("Supprimer définitivement cette analyse et ses lectures ?")) return;
+    try {
+      const obsPage = await base44.entities.Observation.filter({ scan_id: scanId }, { limit: 100, fields: ['id'] });
+      if (obsPage.items?.length) await base44.entities.Observation.deleteMany({ scan_id: scanId });
+      const readPage = await base44.entities.Reading.filter({ scan_id: scanId }, { limit: 50, fields: ['id'] });
+      for (const r of readPage.items || []) {
+        const repPage = await base44.entities.Report.filter({ reading_id: r.id }, { limit: 10, fields: ['id'] });
+        if (repPage.items?.length) await base44.entities.Report.deleteMany({ reading_id: r.id });
+        await base44.entities.Reading.delete(r.id);
+      }
+      await base44.entities.Scan.delete(scanId);
+      setScans((prev) => prev.filter((s) => s.id !== scanId));
+    } catch (err) {
+      window.alert("Suppression impossible pour le moment.");
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -54,7 +74,7 @@ export default function MyHands() {
       ) : (
         <div className="space-y-3">
           {scans.map((s) => (
-            <Link key={s.id} to={`/lecture/${s.id}`} className="glass-card flex items-center gap-3 p-3 hover:border-primary/40 transition-colors">
+            <Link key={s.id} to={`/lecture/${s.id}`} className="glass-card flex items-center gap-3 p-3 hover:border-primary/40 transition-colors group">
               <div className="w-14 h-14 rounded-lg overflow-hidden bg-black/40 shrink-0 flex items-center justify-center">
                 {s.right_hand_photo ? <PalmThumb uri={s.right_hand_photo} /> : <Hand size={18} className="text-muted-foreground" />}
               </div>
@@ -65,6 +85,13 @@ export default function MyHands() {
                 </p>
                 <StatusBadge status={s.status} />
               </div>
+              <button
+                onClick={(e) => handleDelete(e, s.id)}
+                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                aria-label="Supprimer cette analyse"
+              >
+                <Trash2 size={16} />
+              </button>
             </Link>
           ))}
         </div>
