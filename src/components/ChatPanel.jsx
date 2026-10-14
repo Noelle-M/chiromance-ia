@@ -86,7 +86,7 @@ export default function ChatPanel({ messages, onSend, busy, blocked, remaining, 
           <button
           onClick={signal}
           disabled={busy}
-          className="btn-ghost-gold w-full py-2 mt-2 text-xs flex items-center justify-center gap-2">
+          className="btn-ghost-gold w-full py-2 mt-2 text-xs flex items-center justify-center gap-2 hidden">
           
             <HelpCircle size={13} /> Cette interprétation ne correspond pas à mon vécu
           </button>
