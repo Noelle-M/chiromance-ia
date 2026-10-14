@@ -18,6 +18,8 @@ const rescueMarkdown = (md) => {
   s = s.replace(/(#{1,6} [^\n]+?)\s+[—–-]\s+([^\n])/g, "$1\n\n$2");
   // Missing blank line after a heading line.
   s = s.replace(/(#{1,6}[^\n]+)\n([^\n#])/g, "$1\n\n$2");
+  // Remove stray Markdown markers generated as standalone paragraphs.
+  s = s.replace(/^\s*#{1,6}\s*$/gm, "");
   // Collapse excessive blank lines.
   s = s.replace(/\n{3,}/g, "\n\n");
   return s;
