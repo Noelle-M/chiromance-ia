@@ -28,6 +28,7 @@ export default function Reading() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatBusy, setChatBusy] = useState(false);
   const [chatSubscribed, setChatSubscribed] = useState(false);
+  const [reportEntitled, setReportEntitled] = useState(false);
   const [freeQuestionCount, setFreeQuestionCount] = useState(0);
   const [subscribeBusy, setSubscribeBusy] = useState(false);
   const [subNotice, setSubNotice] = useState("");
@@ -59,6 +60,8 @@ export default function Reading() {
         const me = await base44.auth.me();
         const entitlements = await base44.entities.PlayEntitlement.filter({ product_id: 'chiromancia_questions_illimitees', status: 'active' });
         setChatSubscribed((entitlements.items || []).some((r) => r.user_id === me.id && r.expires_at && Date.parse(r.expires_at) > Date.now()));
+        const reportRights = await base44.entities.PlayEntitlement.filter({ product_id: 'chiromancia_rapport_complet', scan_id: scanId, status: 'active' });
+        setReportEntitled((reportRights.items || []).some((r) => r.user_id === me.id));
         const used = await base44.entities.ChatMessage.count({ role: 'user', created_by_id: me.id, kind: { $in: ['chat', 'revision'] } });
         setFreeQuestionCount(used || 0);
       } catch (e) {}
@@ -149,6 +152,7 @@ export default function Reading() {
       if (!payment.success || !payment.purchaseToken) { setError('Paiement non confirmé.'); return; }
       const verified = await base44.functions.invoke('verifyPlayPurchase', { productId: 'chiromancia_rapport_complet', purchaseToken: payment.purchaseToken, scanId });
       if (!verified.data?.verified) { setError('Achat en attente de validation.'); return; }
+      setReportEntitled(true);
       // Génère la lecture approfondie uniquement après vérification Google Play.
       if (!reading.full_content) {
         setDeepBusy(true);
@@ -173,7 +177,7 @@ export default function Reading() {
   };
 
   const regenerateDeep = async () => {
-    if (report?.purchase_status !== "unlocked") return;
+    if (!reportEntitled) return;
     setDeepBusy(true);
     setError("");
     try {
@@ -216,7 +220,7 @@ export default function Reading() {
     <div className="px-6 pt-20 text-center text-sm text-muted-foreground">{error} <Link to="/mes-mains" className="text-primary underline">Retour</Link></div>
   );
 
-  const unlocked = report?.purchase_status === "unlocked";
+  const unlocked = reportEntitled;
   const rightObs = observations.filter((o) => o.hand === "right");
   const leftObs = observations.filter((o) => o.hand === "left");
   const chatVisible = chatMessages.filter((m) => m.kind === "chat" || m.kind === "revision");
