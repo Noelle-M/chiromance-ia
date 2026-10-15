@@ -199,7 +199,7 @@ function infoPage(doc, background, topic, content, pageNum) {
     doc.setFont("times", "normal");
     doc.setFontSize(11.2);
     doc.setTextColor(...INK);
-    const message = "La photographie ne permet pas de développer davantage ce point avec suffisamment de précision. Aucune observation n'a été ajoutée artificiellement.";
+    const message = "La photographie ne permet pas de développer davantage ce point avec suffisamment de précision.";
     doc.text(doc.splitTextToSize(message, 151), 29, afterIntro + 9);
     return pageNum;
   }
