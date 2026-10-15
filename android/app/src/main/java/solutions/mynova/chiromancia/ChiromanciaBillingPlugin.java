@@ -6,6 +6,7 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.android.billingclient.api.AcknowledgePurchaseParams;
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
@@ -100,6 +101,21 @@ public class ChiromanciaBillingPlugin extends Plugin implements PurchasesUpdated
         obj.put("purchaseState", p.getPurchaseState());
         obj.put("acknowledged", p.isAcknowledged());
         return obj;
+    }
+
+    @PluginMethod public void acknowledgePurchase(PluginCall call) {
+        String token = call.getString("purchaseToken", "");
+        if (token.isEmpty()) { call.reject("missing_purchase_token"); return; }
+        if (!billing.isReady()) { call.reject("billing_not_ready"); return; }
+        AcknowledgePurchaseParams params = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(token).build();
+        billing.acknowledgePurchase(params, result -> {
+            if (result.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                JSObject response = new JSObject();
+                response.put("acknowledged", true);
+                call.resolve(response);
+            } else call.reject("acknowledgement_failed_" + result.getResponseCode());
+        });
     }
 
     @PluginMethod public void restorePurchases(PluginCall call) {
