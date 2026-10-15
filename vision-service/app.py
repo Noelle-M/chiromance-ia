@@ -290,6 +290,42 @@ async def sam2_segment(photo: UploadFile = File(...), points: str = Form(...)):
     }
 
 
+@app.post("/sam2/cutout")
+async def sam2_cutout(photo: UploadFile = File(...)):
+    """Automatic foreground cutout. Return transparent PNG, same dimensions.
+
+    Requires a centered hand photo. A failed/implausible mask is rejected,
+    never substituted with a fake cutout.
+    """
+    image = decode_image(await photo.read(MAX_BYTES + 1))
+    h, w = image.shape[:2]
+    from sam2_adapter import segment_with_points
+    # Several positive points inside the central palm; corners as background.
+    positives = [[0.5, 0.48], [0.5, 0.60]]
+    negatives = [[0.02, 0.02], [0.98, 0.02], [0.02, 0.98], [0.98, 0.98]]
+    try:
+        mask, score = segment_with_points(image, positives, negatives)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(503, str(exc)) from exc
+    fraction = cv2.countNonZero(mask) / (h * w)
+    if score < 0.5 or not 0.08 < fraction < 0.90:
+        raise HTTPException(422, "Détourage de la main incertain")
+    # Remove isolated background islands and smooth jagged edges.
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    if count < 2:
+        raise HTTPException(422, "Main introuvable")
+    largest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    clean = np.uint8(labels == largest) * 255
+    clean = cv2.morphologyEx(clean, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    alpha = cv2.GaussianBlur(clean, (3, 3), 0.65)
+    bgra = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
+    bgra[:, :, 3] = alpha
+    ok, encoded = cv2.imencode(".png", bgra)
+    if not ok:
+        raise HTTPException(500, "Impossible de générer le PNG détouré")
+    return Response(encoded.tobytes(), media_type="image/png")
+
+
 @app.post("/sam2/preview")
 async def sam2_preview(photo: UploadFile = File(...), points: str = Form(...)):
     image = decode_image(await photo.read(MAX_BYTES + 1))
