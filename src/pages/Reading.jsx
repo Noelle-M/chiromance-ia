@@ -74,7 +74,7 @@ export default function Reading() {
         if (repPage.items?.length) {
           setReport(repPage.items[0]);
           if (ownsReport && repPage.items[0].pdf_file_uri) {
-            try { const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: repPage.items[0].pdf_file_uri }); setPdfUrl(r.signed_url); } catch (e) {}
+            try { const r = await base44.functions.invoke('getReportPdfUrl', { scanId, reportId: repPage.items[0].id }); if (r.data?.url) setPdfUrl(r.data.url); } catch (e) {}
           }
         }
       }
@@ -239,8 +239,9 @@ export default function Reading() {
       const file = new File([blob], `rapport-${scanId}.pdf`, { type: "application/pdf" });
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
       await base44.functions.invoke("saveReportPdf", { scanId, reportId: report.id, fileUri: file_uri });
-      const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
-      setPdfUrl(r.signed_url);
+      const r = await base44.functions.invoke('getReportPdfUrl', { scanId, reportId: report.id });
+      if (!r.data?.url) throw new Error('PDF indisponible');
+      setPdfUrl(r.data.url);
       const repPage = await base44.entities.Report.filter({ reading_id: reading.id }, { limit: 1 });
       if (repPage.items?.length) setReport(repPage.items[0]);
     } catch (e) {
