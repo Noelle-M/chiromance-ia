@@ -56,8 +56,8 @@ export default function Reading() {
 
       try {
         const me = await base44.auth.me();
-        setChatSubscribed(!!me.chat_subscribed);
-        const used = await base44.entities.ChatMessage.count({ role: 'user', kind: { $in: ['chat', 'revision'] } });
+        setChatSubscribed(false); // Abonnement uniquement après validation de paiement.
+        const used = await base44.entities.ChatMessage.count({ role: 'user', created_by_id: me.id, kind: { $in: ['chat', 'revision'] } });
         setFreeQuestionCount(used || 0);
       } catch (e) {}
 
@@ -121,9 +121,8 @@ export default function Reading() {
     setSubscribeBusy(true);
     setSubNotice("");
     try {
-      await base44.auth.updateMe({ chat_subscribed: true });
-      setChatSubscribed(true);
-      setSubNotice("Le paiement (6,99 €/mois) sera activé lors du branchement des achats intégrés Google Play / App Store. En mode développement, l'abonnement est débloqué manuellement.");
+      // Aucun déblocage manuel : la confirmation du prestataire de paiement est obligatoire.
+      setSubNotice("Le paiement (6,99 €/mois) sera activé lors du branchement des achats intégrés Google Play / App Store. Aucun abonnement n'est activé sans paiement confirmé.");
     } catch (e) {
       setSubNotice("Souscription impossible pour le moment.");
     }
