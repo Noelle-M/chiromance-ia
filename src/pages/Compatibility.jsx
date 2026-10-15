@@ -122,8 +122,8 @@ export default function Compatibility() {
     <div className="px-6 pt-12 pb-6 max-w-md mx-auto">
       <header className="mb-6 text-center">
         <Heart size={28} className="mx-auto text-primary mb-2" />
-        <h1 className="font-display text-3xl">Compatibilité amoureuse</h1>
-        <p className="text-sm text-muted-foreground mt-1">Comparez symboliquement vos mains droites à deux.</p>
+        <h1 className="font-display text-3xl">Compatibilité</h1>
+        <p className="text-sm text-muted-foreground mt-1">Comparez vos mains droites : affinités, amour, amitié, travail et projets communs.</p>
       </header>
 
       {view === 'home' && (
@@ -133,7 +133,7 @@ export default function Compatibility() {
             <Link2 size={16} /> J'ai un code d'invitation
           </button>
           <p className="text-[11px] text-muted-foreground text-center mt-4 leading-relaxed">
-            Gratuit. La compatibilité est une lecture symbolique, non une prédiction de réussite ou d'échec d'une relation.
+            Gratuit. Cette lecture symbolique explore différentes formes de relations, sans prédire leur réussite.
           </p>
         </div>
       )}
@@ -201,7 +201,7 @@ export default function Compatibility() {
       {view === 'result' && compat && (
         <div className="space-y-4">
           <div className="gold-divider" />
-          <h2 className="font-display text-2xl text-primary text-center">Votre compatibilité</h2>
+          <h2 className="font-display text-2xl text-primary text-center">Votre lecture de compatibilité</h2>
           <ReadingMarkdown>{compat.result_content || "Résultat en cours de finalisation."}</ReadingMarkdown>
           <button onClick={() => setView('home')} className="btn-ghost-gold w-full py-3">Nouvelle compatibilité</button>
         </div>
