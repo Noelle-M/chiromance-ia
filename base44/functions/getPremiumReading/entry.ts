@@ -12,7 +12,22 @@ Deno.serve(async (req) => {
     const rights = await base44.asServiceRole.entities.PlayEntitlement.filter({ user_id: user.id, product_id: 'chiromancia_rapport_complet', scan_id: scanId, status: 'active' });
     if (!(rights.items || []).length) return Response.json({ error: 'purchase_required' }, { status: 402 });
     const page = await base44.asServiceRole.entities.PremiumReading.filter({ scan_id: scanId }, { sort: '-created_date', limit: 1 });
-    return Response.json({ content: page.items?.[0]?.content || '' });
+    let content = page.items?.[0]?.content || '';
+    // Migrer les rapports historiques après vérification du droit d'achat.
+    const readings = await base44.asServiceRole.entities.Reading.filter({ scan_id: scanId }, { sort: '-created_date', limit: 1 });
+    const legacy = readings.items?.[0];
+    if (legacy?.full_content) {
+      if (!content) {
+        content = legacy.full_content;
+        await base44.asServiceRole.entities.PremiumReading.create({ scan_id: scanId, content });
+      }
+      await base44.asServiceRole.entities.Reading.update(legacy.id, { full_content: '' });
+    }
+    const messages = await base44.asServiceRole.entities.ChatMessage.filter({ scan_id: scanId, kind: 'deep' });
+    for (const message of (messages.items || [])) {
+      await base44.asServiceRole.entities.ChatMessage.delete(message.id);
+    }
+    return Response.json({ content });
   } catch (error) {
     console.error('getPremiumReading failed', error);
     return Response.json({ error: 'premium_unavailable' }, { status: 500 });
