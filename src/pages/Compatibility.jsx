@@ -33,7 +33,7 @@ export default function Compatibility() {
     const codeParam = params.get("code");
     const scanParam = params.get("scan");
     if (codeParam) sessionStorage.setItem('chiromancia_compat_invite', codeParam);
-    if (scanParam) { setSelectedScan(scanParam); setView("create"); }
+    if (scanParam) { setSelectedScan(scanParam); if (!codeParam) setView("create"); }
     if (codeParam) { setCode(codeParam); setView("accept"); }
     load();
   }, []);
@@ -85,7 +85,8 @@ export default function Compatibility() {
       const c = page.items?.[0];
       if (!c) { setError("Code d'invitation introuvable."); setBusy(false); return; }
       const me = await base44.auth.me();
-      const myScans = await base44.entities.Scan.filter({ scan_type: 'compatibility', status: 'analyzed' }, { sort: '-created_date', limit: 1 });
+      const scanFromCapture = new URLSearchParams(window.location.search).get('scan');
+      const myScans = scanFromCapture ? { items: [{ id: scanFromCapture }] } : await base44.entities.Scan.filter({ scan_type: 'compatibility', status: 'analyzed' }, { sort: '-created_date', limit: 1 });
       if (!myScans.items?.length) { navigate(`/scanner?compatInvite=${encodeURIComponent(code.trim())}`); return; }
       await base44.entities.Compatibility.update(c.id, {
         participant_b_id: me.id,
