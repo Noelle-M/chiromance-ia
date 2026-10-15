@@ -1,0 +1,58 @@
+{
+  "name": "PlayEntitlement",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "product_id": {
+      "type": "string"
+    },
+    "purchase_token": {
+      "type": "string"
+    },
+    "scan_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "revoked"
+      ]
+    },
+    "expires_at": {
+      "type": "string"
+    },
+    "last_verified_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "product_id",
+    "purchase_token",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "user_condition": {
+        "role": "__service_only__"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "__service_only__"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "__service_only__"
+      }
+    }
+  }
+}
