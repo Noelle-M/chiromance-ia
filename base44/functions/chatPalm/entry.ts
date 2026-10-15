@@ -161,7 +161,11 @@ export default async function(req) {
       const used = await base44.entities.ChatMessage.count({
         role: 'user', created_by_id: user.id, kind: { $in: ['chat', 'revision'] },
       });
-      if (used >= 3) return Response.json({ error: 'Trois questions gratuites utilisées. Abonnement requis.' }, { status: 402 });
+      if (used >= 3) {
+        const rights = await base44.asServiceRole.entities.PlayEntitlement.filter({ user_id: user.id, product_id: 'chiromancia_questions_illimitees', status: 'active' });
+        const subscribed = (rights.items || []).some((r: any) => r.expires_at && Date.parse(r.expires_at) > Date.now());
+        if (!subscribed) return Response.json({ error: 'Trois questions gratuites utilisées. Abonnement requis.' }, { status: 402 });
+      }
     }
 
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'system', content: "Analyse directement la photographie originale, sans description intermédiaire. Observe chaque main indépendamment. Appuie chaque interprétation symbolique sur une caractéristique visible, précise et localisable sur CETTE photo. Ne compte pas les bracelets du poignet si tous les plis ne sont pas clairement visibles ; ne déduis aucun fait biographique (enfance, famille, ruptures) de la continuité ou de l’absence de lignes. Évite les portraits psychologiques passe-partout, les prédictions affirmatives et les événements inventés. Si les plis sont trop peu visibles, signale la limite et demande une meilleure photo. Les lignes dorées de Palm Line Reader sont un effet visuel indépendant, jamais une source d'informations." }];
