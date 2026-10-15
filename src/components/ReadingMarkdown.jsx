@@ -25,10 +25,24 @@ const rescueMarkdown = (md) => {
   return s;
 };
 
-export default function ReadingMarkdown({ children }) {
+// Reference each decorative line color once, at its first mention.
+const annotateLineColors = (markdown) => {
+  let result = String(markdown || "");
+  const lines = [
+    [/\bligne\s+de\s+c[oœ]ur\b/i, " (en rose)"],
+    [/\bligne\s+de\s+t[eê]te\b/i, " (en bleu)"],
+    [/\bligne\s+de\s+vie\b/i, " (en vert)"],
+  ];
+  for (const [pattern, suffix] of lines) {
+    if (pattern.test(result)) result = result.replace(pattern, (match) => match + suffix);
+  }
+  return result;
+};
+
+export default function ReadingMarkdown({ children, showLineColors = false }) {
   return (
     <div className="prose-reading reading-markdown">
-      <ReactMarkdown>{rescueMarkdown(children || "")}</ReactMarkdown>
+      <ReactMarkdown>{rescueMarkdown(showLineColors ? annotateLineColors(children) : children || "")}</ReactMarkdown>
     </div>
   );
 }
