@@ -21,9 +21,14 @@ export default function Compatibility() {
     try {
       const page = await base44.entities.Scan.filter({ scan_type: 'compatibility', status: 'analyzed' }, { sort: '-created_date', limit: 20, fields: ['id', 'created_date'] });
       setScans(page.items || []);
-      const cPage = await base44.entities.Compatibility.filter({}, { sort: '-created_date', limit: 10 });
-      const mine = (cPage.items || []).find((c) => c.status === 'completed' && c.result_content);
-      if (mine && !new URLSearchParams(window.location.search).has('code') && !new URLSearchParams(window.location.search).has('scan')) { setCompat(mine); setView('result'); }
+      const cPage = await base44.entities.Compatibility.filter({}, { sort: '-created_date', limit: 20 });
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('code') && !params.has('scan')) {
+        const pending = (cPage.items || []).find((c) => c.status === 'pending' && c.invitation_code);
+        const completed = (cPage.items || []).find((c) => c.status === 'completed' && c.result_content);
+        if (pending) { setCompat(pending); setView('waiting'); }
+        else if (completed) { setCompat(completed); setView('result'); }
+      }
     } catch (e) {}
     setLoading(false);
   };
