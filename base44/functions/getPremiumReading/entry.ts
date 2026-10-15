@@ -24,8 +24,15 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Reading.update(legacy.id, { full_content: '' });
     }
     const messages = await base44.asServiceRole.entities.ChatMessage.filter({ scan_id: scanId, kind: 'deep' });
-    for (const message of (messages.items || [])) {
-      await base44.asServiceRole.entities.ChatMessage.delete(message.id);
+    const oldDeep = (messages.items || []).filter((message) => message.role === 'assistant' && message.content);
+    if (!content && oldDeep.length) {
+      content = oldDeep[oldDeep.length - 1].content;
+      await base44.asServiceRole.entities.PremiumReading.create({ scan_id: scanId, content });
+    }
+    if (content) {
+      for (const message of (messages.items || [])) {
+        await base44.asServiceRole.entities.ChatMessage.delete(message.id);
+      }
     }
     return Response.json({ content });
   } catch (error) {
