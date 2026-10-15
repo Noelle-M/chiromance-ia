@@ -48,6 +48,16 @@ Deno.serve(async (req) => {
       const scan = await base44.entities.Scan.get(scanId);
       if (!scan || scan.created_by_id !== user.id) return Response.json({ error: 'scan_not_owned' }, { status: 403 });
     }
+    const prior = await base44.asServiceRole.entities.PlayEntitlement.filter({ purchase_token: purchaseToken });
+    const linked = prior.items || [];
+    if (linked.some((entry: any) => entry.user_id !== user.id || entry.product_id !== productId ||
+      (productId === REPORT && entry.scan_id !== scanId))) {
+      return Response.json({ error: 'purchase_already_linked' }, { status: 409 });
+    }
+    // Les achats consommés restent acquis au rapport initial, même après réinstallation.
+    if (productId === REPORT && linked.some((entry: any) => entry.status === 'active')) {
+      return Response.json({ verified: true, productId, scanId, alreadyOwned: true });
+    }
     const raw = await secrets.get('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON');
     if (!raw) return Response.json({ error: 'billing_not_configured' }, { status: 503 });
     const accessToken = await googleAccessToken(JSON.parse(raw));
@@ -67,18 +77,19 @@ Deno.serve(async (req) => {
       : purchase.purchaseState === 0 && purchase.consumptionState === 0;
     if (!active) return Response.json({ error: 'purchase_not_active' }, { status: 402 });
 
-    const existing = await base44.asServiceRole.entities.PlayEntitlement.filter({ purchase_token: purchaseToken });
-    const records = existing.items || [];
-    if (records.some((entry: any) => entry.user_id !== user.id || entry.product_id !== productId ||
-        (productId === REPORT && entry.scan_id !== scanId))) {
-      return Response.json({ error: 'purchase_already_linked' }, { status: 409 });
-    }
+    const records = linked;
     const record = { user_id: user.id, product_id: productId, purchase_token: purchaseToken,
       scan_id: productId === REPORT ? scanId : '', status: 'active', expires_at: expiry || '',
       last_verified_at: new Date().toISOString() };
     if (records.length) await base44.asServiceRole.entities.PlayEntitlement.update(records[0].id, record);
     else await base44.asServiceRole.entities.PlayEntitlement.create(record);
     if (productId === REPORT) {
+      // Consommation après enregistrement du droit : permet de payer un nouveau rapport.
+      const consume = await fetch(
+        `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}/purchases/products/${REPORT}/tokens/${encodeURIComponent(purchaseToken)}:consume`,
+        { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken } },
+      );
+      if (!consume.ok) console.error('Google Play consume pending', consume.status);
       const reports = await base44.asServiceRole.entities.Report.filter({ scan_id: scanId });
       for (const report of (reports.items || [])) {
         if (report.created_by_id === user.id) await base44.asServiceRole.entities.Report.update(report.id, { purchase_status: 'unlocked' });
