@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Download, Sparkles, AlertCircle } from "lucide-react";
 import ReadingMarkdown from "@/components/ReadingMarkdown";
+import ReportAccordion from "@/components/ReportAccordion";
 import ChatPanel from "@/components/ChatPanel";
 import { base44 } from "@/api/base44Client";
 import PalmCanvas from "@/components/PalmCanvas";
@@ -280,7 +281,8 @@ export default function Reading() {
           {unlocked ? (
             <div>
               <h2 className="font-display text-2xl text-primary mb-3">Rapport complet</h2>
-              <ReadingMarkdown>{reading.full_content}</ReadingMarkdown>
+              <p className="text-xs text-muted-foreground mb-4">Touchez un chapitre pour afficher son interprétation.</p>
+              <ReportAccordion content={reading.full_content} />
               <button type="button" onClick={regenerateDeep} disabled={deepBusy || pdfBusy} className="w-full border border-primary/40 rounded-xl py-3 text-sm text-primary mt-4 mb-4">
                 {deepBusy ? "Nouvelle lecture en cours…" : "Refaire ma lecture approfondie sans repayer"}
               </button>
