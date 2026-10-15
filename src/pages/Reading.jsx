@@ -7,7 +7,7 @@ import ChatPanel from "@/components/ChatPanel";
 import { base44 } from "@/api/base44Client";
 import PalmCanvas from "@/components/PalmCanvas";
 import { generateReportPdf } from "@/lib/generateReportPdf";
-import { buyReport, subscribeQuestions, restorePurchases, PLAY_PRODUCTS } from "@/lib/googlePlayBilling";
+import { buyReport, subscribeQuestions, restorePurchases, acknowledgeVerifiedPurchase, PLAY_PRODUCTS } from "@/lib/googlePlayBilling";
 
 export default function Reading() {
   const { scanId } = useParams();
@@ -130,7 +130,7 @@ export default function Reading() {
       const result = await subscribeQuestions();
       if (result.success && result.purchaseToken) {
         const verified = await base44.functions.invoke('verifyPlayPurchase', { productId: 'chiromancia_questions_illimitees', purchaseToken: result.purchaseToken });
-        if (verified.data?.verified) { setChatSubscribed(true); setSubNotice('Abonnement actif.'); }
+        if (verified.data?.verified) { await acknowledgeVerifiedPurchase(result.purchaseToken); setChatSubscribed(true); setSubNotice('Abonnement actif.'); }
         else setSubNotice('Paiement en attente de validation.');
       } else setSubNotice(!result.available ? 'Achats Google Play indisponibles sur cette version.' : 'Abonnement non activé : ' + (result.error || 'paiement non confirmé.'));
     } catch (e) {
@@ -152,13 +152,13 @@ export default function Reading() {
           const verified = await base44.functions.invoke("verifyPlayPurchase", {
             productId: PLAY_PRODUCTS.questions, purchaseToken: purchase.purchaseToken,
           });
-          if (verified.data?.verified) { setChatSubscribed(true); restored++; }
+          if (verified.data?.verified) { await acknowledgeVerifiedPurchase(purchase.purchaseToken); setChatSubscribed(true); restored++; }
         }
         if (products.includes(PLAY_PRODUCTS.report)) {
           const verified = await base44.functions.invoke("verifyPlayPurchase", {
             productId: PLAY_PRODUCTS.report, purchaseToken: purchase.purchaseToken, scanId,
           });
-          if (verified.data?.verified) { setReportEntitled(true); restored++; }
+          if (verified.data?.verified) { await acknowledgeVerifiedPurchase(purchase.purchaseToken); setReportEntitled(true); restored++; }
         }
       }
       setSubNotice(restored ? "Vos achats ont été restaurés." : "Aucun achat actif à restaurer pour cette lecture.");
@@ -183,6 +183,7 @@ export default function Reading() {
       if (!payment.success || !payment.purchaseToken) { setError('Paiement non confirmé.'); return; }
       const verified = await base44.functions.invoke('verifyPlayPurchase', { productId: 'chiromancia_rapport_complet', purchaseToken: payment.purchaseToken, scanId });
       if (!verified.data?.verified) { setError('Achat en attente de validation.'); return; }
+      await acknowledgeVerifiedPurchase(payment.purchaseToken);
       setReportEntitled(true);
       // Génère la lecture approfondie uniquement après vérification Google Play.
       if (!reading.full_content) {
