@@ -1,58 +1,40 @@
-/**
- * Chiromancia - pont Android Google Play Billing.
- * Même contrat de callbacks que NOVA Tracker; aucun achat simulé sur le web.
- * La validation serveur du jeton Google Play reste obligatoire avant accès.
- */
+import { Capacitor, registerPlugin } from "@capacitor/core";
+
 export const PLAY_PRODUCTS = Object.freeze({
   report: "chiromancia_rapport_complet",
   questions: "chiromancia_questions_illimitees",
 });
 
-const pending = new Map();
-let installed = false;
-
-function installResolver() {
-  if (installed || typeof window === "undefined") return;
-  installed = true;
-  window.__chiromanciaBillingResolve = (id, payload) => {
-    const callback = pending.get(id);
-    if (!callback) return;
-    pending.delete(id);
-    try { callback(JSON.parse(payload)); }
-    catch { callback({ success: false, error: "invalid_native_response" }); }
-  };
-}
-
-function callNative(method, ...args) {
-  if (typeof window === "undefined") return Promise.resolve({ available: false });
-  const bridge = window.ChiromanciaBillingNative;
-  if (!bridge || typeof bridge[method] !== "function") return Promise.resolve({ available: false });
-  installResolver();
-  const id = typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return new Promise((resolve) => {
-    pending.set(id, resolve);
-    try { bridge[method](...args, id); }
-    catch (error) {
-      pending.delete(id);
-      resolve({ available: true, success: false, error: String(error) });
-    }
-  });
-}
+const Billing = registerPlugin("ChiromanciaBilling");
 
 export function isBillingAvailable() {
-  return typeof window !== "undefined" && !!window.ChiromanciaBillingNative;
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+}
+
+async function purchase(productId, type) {
+  if (!isBillingAvailable()) return { available: false };
+  try {
+    const result = await Billing.purchase({ productId, type });
+    // Le jeton doit être validé côté serveur avant de donner un droit.
+    return { available: true, ...result, verified: false };
+  } catch (error) {
+    return { available: true, success: false, error: error?.message || String(error) };
+  }
 }
 
 export function buyReport() {
-  return callNative("launchOneTimePurchase", PLAY_PRODUCTS.report);
+  return purchase(PLAY_PRODUCTS.report, "inapp");
 }
 
 export function subscribeQuestions() {
-  return callNative("launchSubscriptionFlow", PLAY_PRODUCTS.questions);
+  return purchase(PLAY_PRODUCTS.questions, "subs");
 }
 
-export function restorePurchases() {
-  return callNative("restorePurchases");
+export async function restorePurchases() {
+  if (!isBillingAvailable()) return { available: false };
+  try {
+    return { available: true, ...(await Billing.restorePurchases()), verified: false };
+  } catch (error) {
+    return { available: true, success: false, error: error?.message || String(error) };
+  }
 }
