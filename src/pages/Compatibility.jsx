@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Heart, Loader2, Share2, Copy, Check, X, Link2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ReadingMarkdown from "@/components/ReadingMarkdown";
 
 export default function Compatibility() {
+  const navigate = useNavigate();
   const [view, setView] = useState('home'); // home | create | waiting | result | accept
   const [scans, setScans] = useState([]);
   const [selectedScan, setSelectedScan] = useState(null);
@@ -30,6 +32,7 @@ export default function Compatibility() {
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get("code");
     const scanParam = params.get("scan");
+    if (codeParam) sessionStorage.setItem('chiromancia_compat_invite', codeParam);
     if (scanParam) { setSelectedScan(scanParam); setView("create"); }
     if (codeParam) { setCode(codeParam); setView("accept"); }
     load();
@@ -83,7 +86,7 @@ export default function Compatibility() {
       if (!c) { setError("Code d'invitation introuvable."); setBusy(false); return; }
       const me = await base44.auth.me();
       const myScans = await base44.entities.Scan.filter({ scan_type: 'compatibility', status: 'analyzed' }, { sort: '-created_date', limit: 1 });
-      if (!myScans.items?.length) { setError("Analysez d'abord votre main droite dans l'onglet Mes mains."); setBusy(false); return; }
+      if (!myScans.items?.length) { navigate(`/scanner?compatInvite=${encodeURIComponent(code.trim())}`); return; }
       await base44.entities.Compatibility.update(c.id, {
         participant_b_id: me.id,
         scan_b_id: myScans.items[0].id,
@@ -179,6 +182,7 @@ export default function Compatibility() {
             placeholder="Code à 10 caractères"
             className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground"
           />
+          <p className="text-sm text-muted-foreground">Après connexion, votre main droite sera photographiée pour être comparée à celle de la personne qui vous invite.</p>
           <button onClick={acceptWithCode} disabled={busy} className="btn-gold w-full py-3 flex items-center justify-center gap-2">
             {busy ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />} Accepter et participer
           </button>
