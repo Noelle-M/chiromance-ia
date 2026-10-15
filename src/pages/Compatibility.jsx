@@ -21,7 +21,7 @@ export default function Compatibility() {
       setScans(page.items || []);
       const cPage = await base44.entities.Compatibility.filter({}, { sort: '-created_date', limit: 10 });
       const mine = (cPage.items || []).find((c) => c.status === 'completed' && c.result_content);
-      if (mine) { setCompat(mine); setView('result'); }
+      if (mine && !new URLSearchParams(window.location.search).has('code') && !new URLSearchParams(window.location.search).has('scan')) { setCompat(mine); setView('result'); }
     } catch (e) {}
     setLoading(false);
   };
@@ -29,6 +29,8 @@ export default function Compatibility() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get("code");
+    const scanParam = params.get("scan");
+    if (scanParam) { setSelectedScan(scanParam); setView("create"); }
     if (codeParam) { setCode(codeParam); setView("accept"); }
     load();
   }, []);
@@ -130,7 +132,7 @@ export default function Compatibility() {
       {view === 'create' && (
         <div className="space-y-4">
           <h2 className="font-display text-xl">Choisissez votre main droite</h2>
-          {scans.length === 0 ? (
+          {scans.length === 0 && !selectedScan ? (
             <p className="text-sm text-muted-foreground">Aucun scan de compatibilité. Allez dans Mes mains pour scanner votre main droite (parcours Compatibilité).</p>
           ) : (
             <div className="space-y-2">
@@ -143,6 +145,7 @@ export default function Compatibility() {
               ))}
             </div>
           )}
+          {selectedScan && !scans.some((s) => s.id === selectedScan) && <p className="text-sm text-primary">Votre main droite est prête. Envoyez maintenant une invitation.</p>}
           <button onClick={createInvitation} disabled={busy} className="btn-gold w-full py-3 flex items-center justify-center gap-2">
             {busy ? <Loader2 className="animate-spin" size={16} /> : <Share2 size={16} />} Créer l'invitation
           </button>
