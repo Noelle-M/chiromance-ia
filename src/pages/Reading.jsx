@@ -69,7 +69,11 @@ export default function Reading() {
       } catch (e) {}
 
       if (currentReading) {
-        setReading(currentReading);
+        let premiumContent = '';
+        if (ownsReport) {
+          try { const premium = await base44.functions.invoke('getPremiumReading', { scanId }); premiumContent = premium.data?.content || ''; } catch (e) {}
+        }
+        setReading({ ...currentReading, full_content: premiumContent });
         const repPage = await base44.entities.Report.filter({ reading_id: currentReading.id }, { limit: 1 });
         if (repPage.items?.length) {
           setReport(repPage.items[0]);
@@ -191,8 +195,8 @@ export default function Reading() {
         setDeepBusy(true);
         try {
           await base44.functions.invoke("chatPalm", { scan_id: scanId, mode: "deep" });
-          const rp = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: "-created_date", limit: 1 });
-          if (rp.items?.length) setReading(rp.items[0]);
+          const premium = await base44.functions.invoke('getPremiumReading', { scanId });
+          setReading((current) => ({ ...current, full_content: premium.data?.content || '' }));
         } catch (e) {
           setError("La génération de la lecture approfondie a échoué.");
           setDeepBusy(false);
@@ -216,8 +220,8 @@ export default function Reading() {
     setError("");
     try {
       await base44.functions.invoke("chatPalm", { scan_id: scanId, mode: "deep" });
-      const rp = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: "-created_date", limit: 1 });
-      if (rp.items?.length) setReading(rp.items[0]);
+      const premium = await base44.functions.invoke('getPremiumReading', { scanId });
+      setReading((current) => ({ ...current, full_content: premium.data?.content || '' }));
       setPdfUrl(null);
       await base44.functions.invoke("saveReportPdf", { scanId, reportId: report.id, fileUri: "" });
     } catch (e) {
