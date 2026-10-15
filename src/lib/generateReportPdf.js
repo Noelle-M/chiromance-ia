@@ -183,20 +183,20 @@ function renderParagraphs(doc, background, page, text, pageNum, startY) {
     const plain = textSafe(withoutMountNumbers(block));
     if (!plain) continue;
     doc.setFont("times", "normal");
-    doc.setFontSize(11.3);
+    doc.setFontSize(13);
     doc.setTextColor(...INK);
-    const lines = doc.splitTextToSize(plain, 151);
-    // Keep paragraph together when possible.
-    const needed = lines.length * 6.2 + 6;
+    const lines = doc.splitTextToSize(plain, 147);
+    // Larger, readable text makes better use of the page without filler.
+    const needed = lines.length * 8 + 8;
     if (y + needed > 264 && y > 85) {
       y = makePage(doc, background, page.title + " (suite)", page.chapter, ++pageNum);
     }
     for (const line of lines) {
       if (y > 263) y = makePage(doc, background, page.title + " (suite)", page.chapter, ++pageNum);
       doc.text(line, 29, y);
-      y += 6.2;
+      y += 8;
     }
-    y += 6;
+    y += 8;
   }
   return pageNum;
 }
@@ -239,7 +239,7 @@ function infoPage(doc, background, topic, content, pageNum) {
   doc.setTextColor(...MUTED);
   const intro = doc.splitTextToSize(textSafe(EXPLAINS[topic.id]), 150);
   doc.text(intro, 29, y + 2);
-  const afterIntro = y + 10 + intro.length * 5.4;
+  const afterIntro = y + 13 + intro.length * 6.2;
   doc.setDrawColor(...GOLD);
   doc.line(29, afterIntro - 4, 67, afterIntro - 4);
   if (!content?.trim()) {
@@ -250,7 +250,7 @@ function infoPage(doc, background, topic, content, pageNum) {
     doc.text(doc.splitTextToSize(message, 151), 29, afterIntro + 9);
     return pageNum;
   }
-  return renderParagraphs(doc, background, topic, content, pageNum, afterIntro + 8);
+  return renderParagraphs(doc, background, topic, content, pageNum, afterIntro + 12);
 }
 
 export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, scanDate, userName }) {
