@@ -170,6 +170,11 @@ export default async function(req) {
 
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'system', content: "Analyse directement la photographie originale, sans description intermédiaire. Observe chaque main indépendamment. Appuie chaque interprétation symbolique sur une caractéristique visible, précise et localisable sur CETTE photo. Ne compte pas les bracelets du poignet si tous les plis ne sont pas clairement visibles ; ne déduis aucun fait biographique (enfance, famille, ruptures) de la continuité ou de l’absence de lignes. Évite les portraits psychologiques passe-partout, les prédictions affirmatives et les événements inventés. Si les plis sont trop peu visibles, signale la limite et demande une meilleure photo. Les lignes dorées de Palm Line Reader sont un effet visuel indépendant, jamais une source d'informations." }];
 
+    if (mode === 'deep') {
+      const rights = await base44.asServiceRole.entities.PlayEntitlement.filter({ user_id: user.id, product_id: 'chiromancia_rapport_complet', scan_id: scanId, status: 'active' });
+      if (!(rights.items || []).length) return Response.json({ error: 'Achat du rapport requis.' }, { status: 402 });
+    }
+
     // For the full report, preserve the free reading as reference without replaying all chats.
     if (mode === 'deep') {
       const previous = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: '-created_date', limit: 1 });
