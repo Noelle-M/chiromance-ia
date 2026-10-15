@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -18,6 +18,10 @@ export default function Scanner() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
   const urisRef = useRef({});
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('compatInvite')) start(PARCOURS.find((p) => p.id === 'compatibility'));
+  }, []);
 
   const start = (p) => { setParcours(p); setStep(0); setError(""); urisRef.current = {}; };
 
@@ -56,7 +60,8 @@ export default function Scanner() {
         throw new Error(msg || "L'analyse a échoué.");
       });
       if (res?.data?.error) throw new Error(res.data.error);
-      navigate(parcours.id === 'compatibility' ? `/compatibilite?scan=${encodeURIComponent(scan.id)}` : `/lecture/${scan.id}`);
+      const invite = new URLSearchParams(window.location.search).get('compatInvite');
+      navigate(parcours.id === 'compatibility' ? `/compatibilite?scan=${encodeURIComponent(scan.id)}${invite ? `&code=${encodeURIComponent(invite)}` : ''}` : `/lecture/${scan.id}`);
     } catch (e) {
       setAnalyzing(false);
       setError(e.message || "L'analyse a échoué. Vous pouvez reprendre la photo.");
