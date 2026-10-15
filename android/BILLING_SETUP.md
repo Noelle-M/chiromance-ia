@@ -1,49 +1,27 @@
-# Chiromancia - Google Play Billing (Android d'abord)
+# Chiromancia Android / Capacitor / Google Play Billing
 
-Référence d'architecture : NOVA Tracker, dossier android/ et src/lib/googlePlayBilling.js.
+Le projet Capacitor Android est généré dans `android/`. L'interface React appelle le plugin natif `ChiromanciaBilling` qui utilise Google Play Billing 8.0.0.
 
-## Produits à créer dans Play Console
+Produits prévus (à créer dans Google Play Console, prix à y définir) :
+- `chiromancia_rapport_complet` : produit intégré non consommable, 4,99 EUR.
+- `chiromancia_questions_illimitees` : abonnement mensuel, 6,99 EUR.
 
-- Produit intégré non consommable : `chiromancia_rapport_complet` (4,99 EUR), lié à un rapport / scan précis côté backend.
-- Abonnement mensuel : `chiromancia_questions_illimitees` (6,99 EUR / mois).
+Identifiant Android provisoire : `solutions.mynova.chiromancia`. Le confirmer **avant publication**.
 
-Les identifiants sont des propositions techniques : ils doivent correspondre exactement à ceux publiés dans Play Console.
+## Réalisé
+- Projet Capacitor Android, compilation Vite et synchronisation Capacitor.
+- Plugin natif Java : lancement d'achat unique, souscription, restauration des achats.
+- Retour des jetons d'achat à JavaScript **sans attribuer de droits**.
 
-## Contrat natif attendu
+## Obligatoire avant tout lancement commercial
+- Créer les deux produits et les offres dans Play Console.
+- Vérifier les jetons d'achat sur le serveur avec Google Play Developer API (compte de service), en liant chaque achat à l'utilisateur authentifié et, pour le rapport, au scan concerné.
+- Faire respecter les droits par les fonctions serveur et verrouiller les écritures de statut d'achat dans les règles d'accès des entités. Ne pas faire confiance aux champs modifiables par le client.
+- Accuser réception des achats vérifiés dans les délais Google Play, gérer pending, renouvellements, annulations, remboursements et notifications RTDN.
+- Tester dans Google Play avec un compte de test et un bundle signé.
+- Vérifier les fonctionnalités appareil photo et PDF dans la version Android.
+- Installer Android Studio / JDK localement puis exécuter `npx cap open android` et une compilation Gradle. Le sandbox actuel ne dispose pas de Java : compilation native non vérifiée.
 
-Le wrapper Android doit exposer `window.ChiromanciaBillingNative` avec :
-- `launchOneTimePurchase(productId, callbackId)`
-- `launchSubscriptionFlow(productId, callbackId)`
-- `restorePurchases(callbackId)`
+**Aucun accès premium n'est accordé sur la seule base d'un résultat natif.** L'intégration serveur est encore à réaliser.
 
-Les résultats sont transmis à `window.__chiromanciaBillingResolve(callbackId, JSON.stringify(result))`.
-
-## Sécurité indispensable avant commercialisation
-
-1. Recevoir le jeton d'achat depuis Google Play Billing natif.
-2. Vérifier le jeton **sur le backend** via Google Play Developer API, avec le bon package et produit ; ne jamais faire confiance à `result.success` seul.
-3. Enregistrer l'achat vérifié, son utilisateur, son scan si rapport, son état, son expiration si abonnement, et prévenir les doubles utilisations du jeton.
-4. Débloquer uniquement après validation serveur, gérer achats en attente, renouvellements, annulations, remboursements et restauration.
-5. Ajouter les notifications temps réel Google Play (RTDN) pour synchroniser l'état des abonnements.
-6. Ne jamais attribuer de droits particuliers au rôle administrateur.
-
-## Préparation Capacitor
-
-Un fichier `capacitor.config.json` est présent à la racine. L'identifiant `solutions.mynova.chiromancia` est **provisoire** : le valider avant la création de la fiche Google Play, car l'identifiant Android devient définitif après publication.
-
-Sur le poste de développement, depuis le dépôt synchronisé :
-
-```bash
-npm install @capacitor/core @capacitor/android
-npm install -D @capacitor/cli
-npm run build
-npx cap add android
-npx cap sync android
-npx cap open android
-```
-
-**Attention :** le wrapper natif NOVA Tracker est une WebView Android personnalisée, pas une preuve qu'un plugin Capacitor existe déjà dans Chiromancia. Pour Capacitor, implémenter un plugin natif Android qui expose les mêmes opérations que `src/lib/googlePlayBilling.js` et transmet les jetons au serveur. Le pont JavaScript actuel attend `window.ChiromanciaBillingNative` et devra être raccordé à ce plugin lors de sa création.
-
-L'intégration native Android et la vérification serveur ne sont **pas encore implémentées**. La couche React refuse actuellement de débloquer les achats sans confirmation.
-
-La version iOS suivra le même modèle de droits serveur avec StoreKit.
+Pour iOS, ajouter ultérieurement Capacitor iOS et StoreKit avec la même validation de droits côté serveur.
