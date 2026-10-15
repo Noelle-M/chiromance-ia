@@ -284,7 +284,7 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
       const source = (groups[note.id] || []).join(" ");
       const clean = textSafe(source);
       const summary = clean
-        ? (clean.length > 225 ? clean.slice(0, 225).replace(/\\s+\\S*$/, "") + "..." : clean)
+        ? (clean.length > 225 ? clean.slice(0, 225).replace(/\s+\S*$/, "") + "..." : clean)
         : "Observation détaillée dans le chapitre correspondant, si le tracé est visible.";
       doc.setFont("times", "normal");
       doc.setFontSize(9);
