@@ -78,6 +78,12 @@ Deno.serve(async (req) => {
       last_verified_at: new Date().toISOString() };
     if (records.length) await base44.asServiceRole.entities.PlayEntitlement.update(records[0].id, record);
     else await base44.asServiceRole.entities.PlayEntitlement.create(record);
+    if (productId === REPORT) {
+      const reports = await base44.asServiceRole.entities.Report.filter({ scan_id: scanId });
+      for (const report of (reports.items || [])) {
+        if (report.created_by_id === user.id) await base44.asServiceRole.entities.Report.update(report.id, { purchase_status: 'unlocked' });
+      }
+    }
     return Response.json({ verified: true, productId, scanId: record.scan_id, expiresAt: expiry });
   } catch (error) {
     console.error('verifyPlayPurchase failed', error);
