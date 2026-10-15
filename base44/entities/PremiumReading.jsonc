@@ -1,0 +1,38 @@
+{
+  "name": "PremiumReading",
+  "type": "object",
+  "properties": {
+    "scan_id": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "scan_id",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "__service_only__"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "__service_only__"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "__service_only__"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "__service_only__"
+      }
+    }
+  }
+}
