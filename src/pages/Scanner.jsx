@@ -118,6 +118,7 @@ export default function Scanner() {
       )}
 
       <CameraCapture
+        key={`${parcours.id}-${currentHand}`}
         handLabel={currentHand === 'right' ? 'Main droite — paume vers le haut' : 'Main gauche — paume vers le haut'}
         onValidated={handleValidated}
       />
