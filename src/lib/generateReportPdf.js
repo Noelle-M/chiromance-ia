@@ -115,6 +115,7 @@ function sectionsOf(markdown) {
 const TOPICS = [
   { id: "life", title: "Votre ligne de vie", chapter: "Vos lignes", match: /ligne de vie|vitalite|energie|elan de vie/ },
   { id: "fate", title: "Votre ligne du destin", chapter: "Vos lignes", match: /destin|profession|travail|orientation|choix de vie/ },
+  { id: "bracelets", title: "Les bracelets de votre poignet", chapter: "Vos lignes", match: /bracelets|rascettes|plis du poignet|lignes du poignet/ },
   { id: "signs", title: "Les signes particuliers", chapter: "Les signes", match: /signes|ramification|secondaire|fourche|croisement|particularit/ },
   { id: "mounts", title: "Les monts de votre main", chapter: "Les signes", match: /monts|reliefs|venus|lune|mars|mercure|jupiter|saturne/ },
   { id: "past", title: "Les empreintes du passé", chapter: "Votre parcours", match: /passe|enfance|hier|origines/ },
@@ -128,6 +129,7 @@ const TOPICS = [
 const EXPLAINS = {
   life: "En chiromancie, la ligne de vie décrit symboliquement l'élan vital et les étapes d'un parcours. Sa longueur ne permet pas de déterminer la durée de vie.",
   fate: "La ligne du destin est traditionnellement associée aux orientations, aux engagements et aux choix de parcours. Elle peut être discrète ou absente.",
+  bracelets: "Les bracelets, aussi appelés rascettes, sont les plis transversaux situés à la jonction entre la paume et le poignet. Leur lecture est symbolique ; leur nombre ne permet pas de calculer la longévité.",
   signs: "Une branche, une fourche ou un croisement n'a de sens dans une lecture personnalisée que s'il est réellement discernable sur la photographie.",
   mounts: "Les monts sont les reliefs de la paume. Leur interprétation appartient aux traditions de chiromancie et varie selon les écoles.",
   past: "Les signes de la main peuvent nourrir une lecture symbolique du passé, mais ils ne permettent pas de reconstituer des événements biographiques certains.",
@@ -248,27 +250,60 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
   doc.setTextColor(226, 214, 219);
   doc.text("Une consultation symbolique personnalisée", 105, 273, { align: "center" });
 
-  // 2. Photo personnelle
+  // 2. Photo personnelle et observations issues de la lecture réelle.
   let page = 2;
   let y = makePage(doc, assets.background, left ? "Vos deux mains" : "Votre main", "Découvrir votre main", page);
   doc.setFont("times", "normal");
   doc.setFontSize(11);
   doc.setTextColor(...INK);
-  doc.text("Les photographies originales de votre consultation", 29, y + 5);
+  doc.text("Votre photographie et les signes observés", 29, y + 5);
+  const photoTop = y + 17;
+  const photoHeight = 135;
   if (right && left) {
-    doc.text("Main droite", 32, y + 17);
-    doc.text("Main gauche", 113, y + 17);
-    drawContained(doc, right, 29, y + 23, 73, 155);
-    drawContained(doc, left, 110, y + 23, 73, 155);
-  } else if (right || left) {
-    drawContained(doc, right || left, 43, y + 15, 124, 164);
+    doc.text("Main droite", 33, photoTop - 3);
+    doc.text("Main gauche", 103, photoTop - 3);
+    drawContained(doc, right, 29, photoTop + 3, 65, photoHeight);
+    drawContained(doc, left, 99, photoTop + 3, 65, photoHeight);
+  } else {
+    drawContained(doc, right || left, 29, photoTop, 83, photoHeight);
+    const notes = [
+      { label: "Ligne de vie", id: "life" },
+      { label: "Ligne du destin", id: "fate" },
+      { label: "Lignes du coeur et de tête", id: "portrait" },
+      { label: "Bracelets du poignet", id: "bracelets" },
+    ];
+    let noteY = photoTop + 2;
+    doc.setCharSpace(0);
+    for (const note of notes) {
+      if (noteY > photoTop + photoHeight - 15) break;
+      doc.setFont("times", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...INK);
+      doc.text(note.label, 120, noteY);
+      noteY += 5.5;
+      const source = (groups[note.id] || []).join(" ");
+      const clean = textSafe(source);
+      const summary = clean
+        ? (clean.length > 225 ? clean.slice(0, 225).replace(/\\s+\\S*$/, "") + "..." : clean)
+        : "Observation détaillée dans le chapitre correspondant, si le tracé est visible.";
+      doc.setFont("times", "normal");
+      doc.setFontSize(9);
+      const lines = doc.splitTextToSize(summary, 61).slice(0, 9);
+      for (const line of lines) {
+        if (noteY > photoTop + photoHeight - 10) break;
+        doc.text(line, 120, noteY);
+        noteY += 4.2;
+      }
+      noteY += 6;
+    }
   }
   doc.setFont("times", "italic");
   doc.setFontSize(10);
+  doc.setTextColor(...MUTED);
   const photoNote = left
-    ? "La comparaison des deux mains permet d'explorer des nuances de lecture. Chaque observation reste liée à ce qui est visible."
-    : "Cette consultation repose sur une seule main photographiée. L'autre main ne peut pas être décrite sans photographie.";
-  doc.text(doc.splitTextToSize(photoNote, 150), 29, 247);
+    ? "La comparaison des deux mains peut enrichir la lecture, selon les signes réellement visibles."
+    : "Une seule main a été photographiée. L'autre main ne peut pas être interprétée sans photographie.";
+  doc.text(doc.splitTextToSize(photoNote, 149), 29, 248);
 
   // 3–6. Planches illustrées fournies par l'autrice.
   const illustrations = [
