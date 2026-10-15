@@ -102,7 +102,18 @@ export default function Compatibility() {
   };
 
   const shareUrl = compat?.invitation_code ? `${window.location.origin}/compatibilite?code=${compat.invitation_code}` : "";
-  const copy = () => { navigator.clipboard?.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    catch (e) { setError('Copie indisponible. Sélectionnez le lien pour le partager.'); }
+  };
+  const share = async () => {
+    if (!shareUrl) return;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Invitation Chiromancia', text: 'Comparons nos mains droites sur Chiromancia', url: shareUrl }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    await copy();
+  };
 
   if (loading) return <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-primary" /></div>;
 
@@ -160,6 +171,7 @@ export default function Compatibility() {
             <span className="text-xs text-primary truncate flex-1 text-left">{shareUrl}</span>
             <button onClick={copy} className="text-primary">{copied ? <Check size={16} /> : <Copy size={16} />}</button>
           </div>
+          <button onClick={share} className="btn-gold w-full py-3 flex items-center justify-center gap-2"><Share2 size={16} /> Partager l’invitation</button>
           <p className="text-[11px] text-muted-foreground">Code de secours : {compat.invitation_code}</p>
           <button onClick={cancelInvitation} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
             <X size={16} /> Quitter cette page
