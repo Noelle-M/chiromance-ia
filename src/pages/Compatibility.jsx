@@ -77,7 +77,7 @@ export default function Compatibility() {
     setError("");
     try {
       const scanFromCapture = new URLSearchParams(window.location.search).get('scan');
-      const myScans = scanFromCapture ? { items: [{ id: scanFromCapture }] } : await base44.entities.Scan.filter({ scan_type: 'compatibility', status: 'analyzed' }, { sort: '-created_date', limit: 1 });
+      const myScans = scanFromCapture ? { items: [{ id: scanFromCapture }] } : { items: [] };
       if (!myScans.items?.length) { navigate(`/scanner?compatInvite=${encodeURIComponent(code.trim())}`); return; }
       const accepted = await base44.functions.invoke('acceptCompatibilityInvite', { code: code.trim(), scanId: myScans.items[0].id });
       const c = accepted.data?.compatibility;
@@ -96,7 +96,7 @@ export default function Compatibility() {
     try { setView('home'); setCompat(null); } catch (e) {}
   };
 
-  const shareUrl = compat ? `${window.location.origin}/compatibilite?code=${compat.invitation_code}` : "";
+  const shareUrl = compat?.invitation_code ? `${window.location.origin}/compatibilite?code=${compat.invitation_code}` : "";
   const copy = () => { navigator.clipboard?.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); };
 
   if (loading) return <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-primary" /></div>;
