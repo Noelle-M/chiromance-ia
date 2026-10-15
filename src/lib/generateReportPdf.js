@@ -110,7 +110,8 @@ function wrapSafe(doc, text, width) {
 }
 
 function renderContent(doc, markdown, y) {
-  const blocks = cleanMarkdown(markdown).split(/\n\s*\n/);\n  doc.setCharSpace(0);
+  const blocks = cleanMarkdown(markdown).split(/\n\s*\n/);
+  doc.setCharSpace(0);
   const bottom = 266;
   const ensure = (height) => {
     if (y + height > bottom) y = newContentPage(doc, "");
