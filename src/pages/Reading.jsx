@@ -158,7 +158,7 @@ export default function Reading() {
           const verified = await base44.functions.invoke("verifyPlayPurchase", {
             productId: PLAY_PRODUCTS.report, purchaseToken: purchase.purchaseToken, scanId,
           });
-          if (verified.data?.verified) { await acknowledgeVerifiedPurchase(purchase.purchaseToken); setReportEntitled(true); restored++; }
+          if (verified.data?.verified) { setReportEntitled(true); restored++; }
         }
       }
       setSubNotice(restored ? "Vos achats ont été restaurés." : "Aucun achat actif à restaurer pour cette lecture.");
@@ -183,7 +183,7 @@ export default function Reading() {
       if (!payment.success || !payment.purchaseToken) { setError('Paiement non confirmé.'); return; }
       const verified = await base44.functions.invoke('verifyPlayPurchase', { productId: 'chiromancia_rapport_complet', purchaseToken: payment.purchaseToken, scanId });
       if (!verified.data?.verified) { setError('Achat en attente de validation.'); return; }
-      await acknowledgeVerifiedPurchase(payment.purchaseToken);
+      // Le rapport est consommé côté serveur après vérification, afin de permettre un autre achat.
       setReportEntitled(true);
       // Génère la lecture approfondie uniquement après vérification Google Play.
       if (!reading.full_content) {
