@@ -56,7 +56,7 @@ export default function Scanner() {
         throw new Error(msg || "L'analyse a échoué.");
       });
       if (res?.data?.error) throw new Error(res.data.error);
-      navigate(`/lecture/${scan.id}`);
+      navigate(parcours.id === 'compatibility' ? `/compatibilite?scan=${encodeURIComponent(scan.id)}` : `/lecture/${scan.id}`);
     } catch (e) {
       setAnalyzing(false);
       setError(e.message || "L'analyse a échoué. Vous pouvez reprendre la photo.");
