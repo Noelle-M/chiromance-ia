@@ -98,6 +98,19 @@ function paragraphs(md) {
     .filter(Boolean);
 }
 
+// Only the numbered illustration of the mounts uses these references.
+function withoutMountNumbers(value) {
+  return String(value || "").replace(/\b(mont(?:s)?\s+(?:de\s+|du\s+|d['’])?(?:Vénus|Venus|Saturne|Jupiter|Mercure|Mars|Lune|Soleil|Apollon)|plaine\s+de\s+Mars)\s*\([1-8]\)/gi, "$1");
+}
+
+function shortInterpretation(text, maxLength = 215) {
+  const sentences = textSafe(withoutMountNumbers(text)).match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+  const candidates = sentences.map(s => s.trim()).filter(s => s.length >= 35 && s.length <= maxLength);
+  const interpretive = /évoqu|symbolis|associé|associée|interprét|suggèr|tradition|représent|renvoi|indiqu|parle de|traduit|exprime|signifi|liée? à|lecture/i;
+  const informative = candidates.find(s => interpretive.test(s) && !/^(?:les bracelets|la ligne de vie|la ligne du destin).{0,65}(?:se situe|démarre|traverse|sont les plis|est visible)/i.test(s));
+  return informative || candidates.find(s => interpretive.test(s)) || "";
+}
+
 function normalizeHeading(str) {
   return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
@@ -167,7 +180,7 @@ function renderParagraphs(doc, background, page, text, pageNum, startY) {
   doc.setCharSpace(0);
   const blocks = paragraphs(text);
   for (const block of blocks) {
-    const plain = textSafe(block);
+    const plain = textSafe(withoutMountNumbers(block));
     if (!plain) continue;
     doc.setFont("times", "normal");
     doc.setFontSize(11.3);
@@ -314,15 +327,16 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
       doc.text(note.label, 120, noteY);
       noteY += 5.5;
       const source = (groups[note.id] || []).join(" ");
-      const clean = textSafe(source);
-      // Extrait une phrase complète au lieu de couper le texte avec des points de suspension.
-      const sentences = clean.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
-      const summary = sentences.map(s => s.trim()).find(s => s.length >= 28 && s.length <= 195)
-        || (sentences[0]?.trim().length <= 195 ? sentences[0]?.trim() : "")
-        || "Les détails de cette zone sont développés dans le chapitre correspondant.";
+      // Page photo: une signification symbolique, jamais une simple définition anatomique.
+      const summary = shortInterpretation(source) || ({
+        life: "En chiromancie, la courbe de cette ligne peut évoquer la façon d'aborder les expériences et les changements.",
+        fate: "Cette ligne est traditionnellement liée aux choix de parcours. Un tracé discret ne signifie pas une absence d'ambition.",
+        portrait: "La ligne de tête est associée à la manière de réfléchir ; celle du coeur aux façons d'aborder les liens affectifs.",
+        bracelets: "Dans certaines traditions, les bracelets évoquent les étapes d'un parcours. Leur nombre ne prédit pas la durée de vie.",
+      }[note.id]);
       doc.setFont("times", "normal");
       doc.setFontSize(9);
-      const lines = doc.splitTextToSize(summary, 61).slice(0, 9);
+      const lines = doc.splitTextToSize(summary, 61);
       for (const line of lines) {
         if (noteY > photoTop + photoHeight - 10) break;
         doc.text(line, 120, noteY);
