@@ -13,6 +13,7 @@ const IMAGE_PATHS = {
   map: "/La%20carte%20de%20votre%20main.png",
   heart: "/Ligne%20de%20coeur.png",
   head: "/ligne%20de%20t%C3%AAte.png",
+  mounts: "/les%20mont%20de%20votre%20main.png",
 };
 
 function textSafe(value) {
@@ -329,6 +330,11 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
   // 7–16. Lecture personnelle structurée : une section par thème,
   // avec pages de continuation si le texte le nécessite.
   for (const topic of TOPICS) {
+    if (topic.id === "mounts" && assets.mounts) {
+      doc.addPage();
+      fullPage(doc, assets.mounts);
+      page++;
+    }
     page++;
     page = infoPage(doc, assets.background, topic, (groups[topic.id] || []).join("\n\n"), page);
   }
