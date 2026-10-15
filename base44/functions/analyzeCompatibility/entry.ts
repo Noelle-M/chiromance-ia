@@ -46,15 +46,20 @@ export default async function(req) {
     if (!compatibilityId) return Response.json({ error: 'compatibility_id requis' }, { status: 400 });
 
     const compat = await base44.entities.Compatibility.get(compatibilityId);
-    if (!compat) return Response.json({ error: 'Compatibilité introuvable' }, { status: 404 });
+    if (!compat || ![compat.participant_a_id, compat.participant_b_id].includes(user.id)) return Response.json({ error: 'Accès refusé' }, { status: 403 });
+    if (compat.status === 'completed') return Response.json({ ok: true });
+    if (compat.status !== 'accepted' || !compat.consent_a || !compat.consent_b || !compat.participant_b_id || compat.participant_a_id === compat.participant_b_id) return Response.json({ error: 'Invitation non acceptée par deux personnes' }, { status: 409 });
+    const scanA = await base44.asServiceRole.entities.Scan.get(compat.scan_a_id);
+    const scanB = await base44.asServiceRole.entities.Scan.get(compat.scan_b_id);
+    if (!scanA || !scanB || scanA.created_by_id !== compat.participant_a_id || scanB.created_by_id !== compat.participant_b_id || scanA.scan_type !== 'compatibility' || scanB.scan_type !== 'compatibility' || scanA.status !== 'analyzed' || scanB.status !== 'analyzed') return Response.json({ error: 'Scans invalides' }, { status: 403 });
 
     if (!compat.scan_a_id || !compat.scan_b_id) {
       return Response.json({ error: 'Les deux mains ne sont pas encore réunies.' }, { status: 422 });
     }
 
     const [obsAPage, obsBPage] = await Promise.all([
-      base44.entities.Observation.filter({ scan_id: compat.scan_a_id }, { limit: 100 }),
-      base44.entities.Observation.filter({ scan_id: compat.scan_b_id }, { limit: 100 }),
+      base44.asServiceRole.entities.Observation.filter({ scan_id: compat.scan_a_id }, { limit: 100 }),
+      base44.asServiceRole.entities.Observation.filter({ scan_id: compat.scan_b_id }, { limit: 100 }),
     ]);
 
     const summarize = (items, who) => {
@@ -80,7 +85,7 @@ export default async function(req) {
       response_json_schema: schema,
     });
 
-    await base44.entities.Compatibility.update(compatibilityId, {
+    await base44.asServiceRole.entities.Compatibility.update(compatibilityId, {
       status: 'completed',
       result_content: res.result_content,
     });
