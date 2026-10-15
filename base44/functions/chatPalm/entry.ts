@@ -90,6 +90,20 @@ FORMAT STRICT POUR LE LIVRET PREMIUM : respecte exactement les dix titres suivan
 ## Votre portrait chiromantique
 ## Ce qui distingue votre main
 
+OBJECTIF ÉDITORIAL : ce document est vendu 4,99 € et doit donner l'impression d'une véritable consultation approfondie, pas d'un résumé. Rédige un texte substantiel d'environ 2 500 à 3 500 mots au total si les signes observables le permettent, avec une cible de 200 à 350 mots par chapitre. Chaque chapitre doit comporter plusieurs paragraphes développés, avec des explications concrètes et des nuances, jamais deux phrases perdues sur une page. Évite de répéter la même observation dans plusieurs chapitres : approfondis-la sous un angle différent seulement si cela apporte une information nouvelle. N'ajoute aucun détail anatomique non vérifiable pour atteindre la longueur cible.
+
+DÉVELOPPEMENT ATTENDU :
+- Ligne de vie : emplacement précis, départ, trajectoire, courbure, profondeur, ramifications si visibles, rapports avec la ligne de tête, lectures traditionnelles alternatives et limites.
+- Destin : recherche prudente du tracé, continuité ou discrétion, liens éventuels avec les autres lignes ; l'absence d'un tracé net ne permet aucune déduction certaine sur le métier ou la biographie.
+- Signes particuliers : identifier et situer les signes réellement discernables, expliquer comment leur forme, leur direction et leur proximité changent leur interprétation.
+- Monts : commenter séparément les reliefs réellement visibles et expliquer leurs symboles sans prétendre mesurer des qualités psychologiques.
+- Passé : raconter les interprétations symboliques des portions et relations observées, avec plusieurs paragraphes narratifs, en expliquant les nuances sans inventer des événements vécus.
+- Présent : faire une lecture croisée des signes visibles à l'heure actuelle, en montrant ce qui concorde, ce qui nuance et ce qui reste ambigu.
+- Avenir : explorer les différentes pistes traditionnelles offertes par les prolongements, terminaisons et branches réellement visibles ; aucun événement futur certain ni date arbitraire.
+- Relations entre lignes : analyser leurs distances, points de départ, orientations et éventuels croisements ; expliquer en détail ce que leur lecture combinée ajoute.
+- Portrait : développer les lignes du cœur et de la tête, leur forme et leur signification particulière, puis leurs liens avec la forme de la main.
+- Particularités : proposer une synthèse réellement spécifique à la photo, avec les détails qui différencient cette main d'une autre, sans paraphraser les chapitres précédents.
+
 Chaque chapitre doit apporter une lecture réellement nouvelle et personnalisée, avec des paragraphes développés, compréhensibles pour un débutant. Dans « Votre portrait chiromantique », approfondis explicitement la ligne du cœur et la ligne de tête de cette personne, avec leurs caractéristiques visuelles distinctes et leurs interprétations, pour compléter les deux planches pédagogiques du livret. Décris les signes visibles puis leur signification traditionnelle et leurs nuances. Le passé, le présent et l'avenir occupent chacun un chapitre narratif distinct. Si une caractéristique est trop peu visible, écris-le sans inventer, et approfondis seulement les observations vérifiables. La main gauche ne doit jamais être décrite si seule la droite est fournie. Évite de répéter les mêmes formulations d'un chapitre à l'autre. Les planches pédagogiques consacrées aux deux mains, à la carte générale, au cœur et à la tête sont ajoutées séparément au PDF : ne recopie pas leur contenu encyclopédique. N'écris JAMAIS de ligne contenant seulement « # », « ## » ou « ### ». Sépare les paragraphes par une ligne vide.`;
 
 const MISMATCH_NOTE = `\n\nL'utilisateur conteste une interprétation. Reconnais explicitement toute déduction biographique injustifiée. Ne change pas les caractéristiques visuelles pour lui donner raison. Explique ce qui reste observable et ce qui ne peut pas être déduit de la main.`;
@@ -156,13 +170,13 @@ export default async function(req) {
     }
     messages.push({ role: 'user', content: userContent });
 
-    const maxTokens = mode === 'deep' ? 6000 : mode === 'reading' ? 2000 : 1200;
+    const maxTokens = mode === 'deep' ? 12500 : mode === 'reading' ? 2000 : 1200;
     const apiKey = secrets.get('OPENAI_API_KEY');
     const oaRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: MODEL, messages, max_tokens: maxTokens, temperature: 0.65 }),
-      signal: AbortSignal.timeout(mode === 'deep' ? 180000 : 90000),
+      signal: AbortSignal.timeout(mode === 'deep' ? 240000 : 90000),
     });
 
     if (!oaRes.ok) {
