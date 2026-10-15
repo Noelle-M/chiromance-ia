@@ -218,7 +218,7 @@ export default function Reading() {
       const rp = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: "-created_date", limit: 1 });
       if (rp.items?.length) setReading(rp.items[0]);
       setPdfUrl(null);
-      await base44.entities.Report.update(report.id, { pdf_file_uri: "" });
+      await base44.functions.invoke("saveReportPdf", { scanId, reportId: report.id, fileUri: "" });
     } catch (e) {
       setError("La nouvelle lecture approfondie n'a pas pu être générée.");
     } finally {
@@ -237,7 +237,7 @@ export default function Reading() {
       });
       const file = new File([blob], `rapport-${scanId}.pdf`, { type: "application/pdf" });
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-      await base44.entities.Report.update(report.id, { pdf_file_uri: file_uri });
+      await base44.functions.invoke("saveReportPdf", { scanId, reportId: report.id, fileUri: file_uri });
       const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
       setPdfUrl(r.signed_url);
       const repPage = await base44.entities.Report.filter({ reading_id: reading.id }, { limit: 1 });
