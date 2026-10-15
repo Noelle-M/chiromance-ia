@@ -283,19 +283,12 @@ export default function Reading() {
               <h2 className="font-display text-2xl text-primary mb-3">Rapport complet</h2>
               <p className="text-xs text-muted-foreground mb-4">Touchez un chapitre pour afficher son interprétation.</p>
               <ReportAccordion content={reading.full_content} />
-              <button type="button" onClick={regenerateDeep} disabled={deepBusy || pdfBusy} className="w-full border border-primary/40 rounded-xl py-3 text-sm text-primary mt-4 mb-4">
-                {deepBusy ? "Nouvelle lecture en cours…" : "Refaire ma lecture approfondie sans repayer"}
-              </button>
               <div className="gold-divider my-5" />
               {pdfUrl ? (
                 <div className="space-y-3">
                   <a href={pdfUrl} download={`rapport-chiromance-${scanId}.pdf`} target="_blank" rel="noreferrer" className="btn-gold w-full flex items-center justify-center gap-2 py-3">
                     <Download size={16} /> Télécharger mon rapport PDF
                   </a>
-                  <button onClick={generatePdf} disabled={pdfBusy} className="btn-ghost-gold w-full py-2 text-sm flex items-center justify-center gap-2">
-                    {pdfBusy ? <Loader2 className="animate-spin" size={15} /> : <Download size={15} />}
-                    Régénérer le PDF avec la nouvelle mise en page
-                  </button>
                 </div>
               ) : (
                 <button onClick={generatePdf} disabled={pdfBusy} className="btn-gold w-full flex items-center justify-center gap-2 py-3">
