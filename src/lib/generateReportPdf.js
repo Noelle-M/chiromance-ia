@@ -295,8 +295,17 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
   doc.setTextColor(226, 214, 219);
   doc.text("Une consultation symbolique personnalisée", 105, 273, { align: "center" });
 
-  // 2. Photo personnelle et observations issues de la lecture réelle.
+  // 2. Carte pédagogique : les repères avant les observations personnalisées.
   let page = 2;
+  doc.addPage();
+  if (assets.map) fullPage(doc, assets.map);
+  else {
+    makePage(doc, assets.background, "Carte de la main", "Découvrir votre main", page);
+    doc.text("Illustration indisponible dans le dossier public.", 29, 73);
+  }
+
+  // 3. Photo personnelle et observations issues de la lecture réelle.
+  page++;
   let y = makePage(doc, assets.background, left ? "Vos deux mains" : "Votre main", "Découvrir votre main", page);
   doc.setFont("times", "normal");
   doc.setFontSize(11);
@@ -356,7 +365,6 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
   // 3–6. Planches illustrées fournies par l'autrice.
   const illustrations = [
     ["hands", "Main gauche et main droite"],
-    ["map", "Carte de la main"],
     ["heart", "Ligne du coeur"],
     ["head", "Ligne de tête"],
   ];
