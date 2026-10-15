@@ -57,12 +57,14 @@ export default function Reading() {
       const msgs = msgPage.items || [];
       setChatMessages(msgs);
 
+      let ownsReport = false;
       try {
         const me = await base44.auth.me();
         const entitlements = await base44.entities.PlayEntitlement.filter({ product_id: 'chiromancia_questions_illimitees', status: 'active' });
         setChatSubscribed((entitlements.items || []).some((r) => r.user_id === me.id && r.expires_at && Date.parse(r.expires_at) > Date.now()));
         const reportRights = await base44.entities.PlayEntitlement.filter({ product_id: 'chiromancia_rapport_complet', scan_id: scanId, status: 'active' });
-        setReportEntitled((reportRights.items || []).some((r) => r.user_id === me.id));
+        ownsReport = (reportRights.items || []).some((r) => r.user_id === me.id);
+        setReportEntitled(ownsReport);
         const used = await base44.entities.ChatMessage.count({ role: 'user', created_by_id: me.id, kind: { $in: ['chat', 'revision'] } });
         setFreeQuestionCount(used || 0);
       } catch (e) {}
@@ -72,7 +74,7 @@ export default function Reading() {
         const repPage = await base44.entities.Report.filter({ reading_id: currentReading.id }, { limit: 1 });
         if (repPage.items?.length) {
           setReport(repPage.items[0]);
-          if (repPage.items[0].pdf_file_uri) {
+          if (ownsReport && repPage.items[0].pdf_file_uri) {
             try { const r = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: repPage.items[0].pdf_file_uri }); setPdfUrl(r.signed_url); } catch (e) {}
           }
         }
