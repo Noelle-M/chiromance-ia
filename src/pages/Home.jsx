@@ -57,7 +57,7 @@ export default function Home() {
           </div>
           <div className="flex-1 text-left">
             <p className="font-display text-lg text-foreground">Explorer notre compatibilité</p>
-            <p className="text-xs text-muted-foreground">Comparez vos mains à deux</p>
+            <p className="text-xs text-muted-foreground">Amour, amitié, travail et projets communs</p>
           </div>
           <ChevronRight size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
         </Link>
