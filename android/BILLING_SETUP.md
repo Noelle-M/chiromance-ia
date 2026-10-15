@@ -27,6 +27,23 @@ Les résultats sont transmis à `window.__chiromanciaBillingResolve(callbackId, 
 5. Ajouter les notifications temps réel Google Play (RTDN) pour synchroniser l'état des abonnements.
 6. Ne jamais attribuer de droits particuliers au rôle administrateur.
 
+## Préparation Capacitor
+
+Un fichier `capacitor.config.json` est présent à la racine. L'identifiant `solutions.mynova.chiromancia` est **provisoire** : le valider avant la création de la fiche Google Play, car l'identifiant Android devient définitif après publication.
+
+Sur le poste de développement, depuis le dépôt synchronisé :
+
+```bash
+npm install @capacitor/core @capacitor/android
+npm install -D @capacitor/cli
+npm run build
+npx cap add android
+npx cap sync android
+npx cap open android
+```
+
+**Attention :** le wrapper natif NOVA Tracker est une WebView Android personnalisée, pas une preuve qu'un plugin Capacitor existe déjà dans Chiromancia. Pour Capacitor, implémenter un plugin natif Android qui expose les mêmes opérations que `src/lib/googlePlayBilling.js` et transmet les jetons au serveur. Le pont JavaScript actuel attend `window.ChiromanciaBillingNative` et devra être raccordé à ce plugin lors de sa création.
+
 L'intégration native Android et la vérification serveur ne sont **pas encore implémentées**. La couche React refuse actuellement de débloquer les achats sans confirmation.
 
 La version iOS suivra le même modèle de droits serveur avec StoreKit.
