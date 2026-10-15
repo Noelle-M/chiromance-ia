@@ -61,6 +61,35 @@ RÈGLES DE MISE EN FORME OBLIGATOIRES :
 - N'utilise jamais de simple saut de ligne à l'intérieur d'un paragraphe.
 - Pour une réponse de suivi, réponds en prose naturelle, SANS titre ## ni structure numérotée, sauf si l'utilisateur demande explicitement un développement détaillé. Conserve des paragraphes aérés.`;
 
+function b64url(data: Uint8Array) {
+  return btoa(String.fromCharCode(...data)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function googleAccessToken(serviceAccount: any) {
+  const now = Math.floor(Date.now() / 1000);
+  const enc = new TextEncoder();
+  const header = b64url(enc.encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' })));
+  const payload = b64url(enc.encode(JSON.stringify({
+    iss: serviceAccount.client_email,
+    scope: 'https://www.googleapis.com/auth/androidpublisher',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now, exp: now + 3600,
+  })));
+  const pem = serviceAccount.private_key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
+  const bytes = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('pkcs8', bytes, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+  const signature = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, enc.encode(header + '.' + payload)));
+  const assertion = header + '.' + payload + '.' + b64url(signature);
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }),
+  });
+  if (!res.ok) throw new Error('google_oauth_failed');
+  const data = await res.json();
+  return data.access_token;
+}
+
+
 // Conversational character and specificity take precedence over report-like structure.
 const READING_PROMPT = `Tu fais une consultation vivante, comme une chiromancienne expérimentée devant une personne curieuse. Commence directement par UN détail visuel vraiment distinctif, situé précisément sur cette main, puis raconte ce qu'il évoque dans la lecture symbolique. Choisis les sujets à partir des signes visibles, pas à partir d'un plan standard.
 
@@ -164,7 +193,29 @@ export default async function(req) {
       });
       if (used >= 3) {
         const rights = await base44.asServiceRole.entities.PlayEntitlement.filter({ user_id: user.id, product_id: 'chiromancia_questions_illimitees', status: 'active' });
-        const subscribed = (rights.items || []).some((r: any) => r.expires_at && Date.parse(r.expires_at) > Date.now());
+        let subscribed = false;
+        const candidates = rights.items || [];
+        if (candidates.length) {
+          const raw = await secrets.get('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON');
+          if (!raw) return Response.json({ error: 'billing_not_configured' }, { status: 503 });
+          const accessToken = await googleAccessToken(JSON.parse(raw));
+          for (const right of candidates) {
+            if (!right.purchase_token) continue;
+            const url = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/solutions.mynova.chiromancia/purchases/subscriptionsv2/tokens/' + encodeURIComponent(right.purchase_token);
+            const response = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+            if (!response.ok) continue;
+            const purchase = await response.json();
+            const item = purchase.lineItems?.find((entry: any) => entry.productId === 'chiromancia_questions_illimitees');
+            const valid = Boolean(item?.expiryTime && Date.parse(item.expiryTime) > Date.now() &&
+              ['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'].includes(purchase.subscriptionState));
+            await base44.asServiceRole.entities.PlayEntitlement.update(right.id, {
+              status: valid ? 'active' : 'expired',
+              expires_at: item?.expiryTime || right.expires_at || '',
+              last_verified_at: new Date().toISOString(),
+            });
+            if (valid) { subscribed = true; break; }
+          }
+        }
         if (!subscribed) return Response.json({ error: 'Trois questions gratuites utilisées. Abonnement requis.' }, { status: 402 });
       }
     }
