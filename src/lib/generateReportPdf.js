@@ -71,20 +71,20 @@ function makePage(doc, background, title, chapter, pageNum) {
   doc.setFont("times", "bold");
   doc.setFontSize(20);
   const titles = doc.splitTextToSize(textSafe(title), 154);
-  doc.text(titles, 28, 40);
+  doc.text(titles, A4_W / 2, 63, { align: "center" });
   doc.setFont("times", "italic");
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
-  doc.text(textSafe(chapter).toUpperCase(), 28, 22);
+  doc.text(textSafe(chapter).toUpperCase(), A4_W / 2, 48, { align: "center" });
   doc.setDrawColor(...GOLD);
   doc.setLineWidth(0.3);
-  doc.line(28, 43 + (titles.length - 1) * 8, 182, 43 + (titles.length - 1) * 8);
+  doc.line(48, 69 + (titles.length - 1) * 8, 162, 69 + (titles.length - 1) * 8);
   doc.setFont("times", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...MUTED);
   doc.text("CHIROMANCIE IA  |  Lecture symbolique", 28, 276);
   doc.text(String(pageNum), 181, 276, { align: "right" });
-  return 54 + (titles.length - 1) * 8;
+  return 79 + (titles.length - 1) * 8;
 }
 
 function paragraphs(md) {
@@ -144,7 +144,7 @@ function distribute(markdown) {
   const leftovers = [];
   for (const section of sections) {
     const title = normalizeHeading(section.title);
-    const topic = TOPICS.find(t => t.match.test(title));
+    const topic = TOPICS.find(t => normalizeHeading(t.title) === title) || TOPICS.find(t => t.match.test(title));
     if (topic) grouped[topic.id].push(section.text);
     else leftovers.push(section.text);
   }
