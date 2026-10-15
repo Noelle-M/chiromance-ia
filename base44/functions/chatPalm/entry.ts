@@ -192,7 +192,7 @@ export default async function(req) {
         role: 'user', created_by_id: user.id, kind: { $in: ['chat', 'revision'] },
       });
       if (used >= 3) {
-        const rights = await base44.asServiceRole.entities.PlayEntitlement.filter({ user_id: user.id, product_id: 'chiromancia_questions_illimitees', status: 'active' });
+        const rights = await base44.asServiceRole.entities.PlayEntitlement.filter({ user_id: user.id, product_id: 'chiromancia_questions_illimitees' });
         let subscribed = false;
         const candidates = rights.items || [];
         if (candidates.length) {
