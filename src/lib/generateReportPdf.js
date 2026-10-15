@@ -192,13 +192,17 @@ function mountsIllustratedPage(doc, background, image, topic, content, pageNum) 
   doc.addPage();
   fullPage(doc, image);
   let y = 61;
+  let continued = false;
   const blocks = paragraphs(content);
   doc.setCharSpace(0);
   if (!blocks.length) blocks.push("Les monts sont les reliefs de la paume. Les numéros sur l'illustration permettent de repérer chaque zone. Leur lecture reste symbolique et dépend de la qualité de la photographie.");
   for (const block of blocks) {
     const lines = doc.splitTextToSize(textSafe(block), 92);
-    if (y + lines.length * 5.6 + 6 > 251) {
-      y = makePage(doc, background, topic.title + " (suite)", topic.chapter, ++pageNum);
+    if (continued || y + lines.length * 5.6 + 6 > 251) {
+      if (!continued) {
+        y = makePage(doc, background, topic.title + " (suite)", topic.chapter, ++pageNum);
+        continued = true;
+      }
       // On the continuation page, the normal text area is wider.
       const remaining = doc.splitTextToSize(textSafe(block), 151);
       for (const line of remaining) {
