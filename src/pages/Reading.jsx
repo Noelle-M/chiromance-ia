@@ -163,6 +163,23 @@ export default function Reading() {
     setBusy(false);
   };
 
+  const regenerateDeep = async () => {
+    if (report?.purchase_status !== "unlocked") return;
+    setDeepBusy(true);
+    setError("");
+    try {
+      await base44.functions.invoke("chatPalm", { scan_id: scanId, mode: "deep" });
+      const rp = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: "-created_date", limit: 1 });
+      if (rp.items?.length) setReading(rp.items[0]);
+      setPdfUrl(null);
+      await base44.entities.Report.update(report.id, { pdf_file_uri: "" });
+    } catch (e) {
+      setError("La nouvelle lecture approfondie n'a pas pu être générée.");
+    } finally {
+      setDeepBusy(false);
+    }
+  };
+
   const generatePdf = async () => {
     setPdfBusy(true);
     setError("");
@@ -264,6 +281,9 @@ export default function Reading() {
             <div>
               <h2 className="font-display text-2xl text-primary mb-3">Rapport complet</h2>
               <ReadingMarkdown>{reading.full_content}</ReadingMarkdown>
+              <button type="button" onClick={regenerateDeep} disabled={deepBusy || pdfBusy} className="w-full border border-primary/40 rounded-xl py-3 text-sm text-primary mt-4 mb-4">
+                {deepBusy ? "Nouvelle lecture en cours…" : "Refaire ma lecture approfondie sans repayer"}
+              </button>
               <div className="gold-divider my-5" />
               {pdfUrl ? (
                 <div className="space-y-3">
