@@ -188,6 +188,33 @@ function renderParagraphs(doc, background, page, text, pageNum, startY) {
   return pageNum;
 }
 
+function mountsIllustratedPage(doc, background, image, topic, content, pageNum) {
+  doc.addPage();
+  fullPage(doc, image);
+  let y = 61;
+  const blocks = paragraphs(content);
+  doc.setCharSpace(0);
+  if (!blocks.length) blocks.push("Les monts sont les reliefs de la paume. Les numéros sur l'illustration permettent de repérer chaque zone. Leur lecture reste symbolique et dépend de la qualité de la photographie.");
+  for (const block of blocks) {
+    const lines = doc.splitTextToSize(textSafe(block), 92);
+    if (y + lines.length * 5.6 + 6 > 251) {
+      y = makePage(doc, background, topic.title + " (suite)", topic.chapter, ++pageNum);
+      // On the continuation page, the normal text area is wider.
+      const remaining = doc.splitTextToSize(textSafe(block), 151);
+      for (const line of remaining) {
+        if (y > 260) y = makePage(doc, background, topic.title + " (suite)", topic.chapter, ++pageNum);
+        doc.setFont("times", "normal"); doc.setFontSize(11); doc.setTextColor(...INK);
+        doc.text(line, 29, y); y += 6.1;
+      }
+    } else {
+      doc.setFont("times", "normal"); doc.setFontSize(10.5); doc.setTextColor(...INK);
+      for (const line of lines) { doc.text(line, 86, y); y += 5.6; }
+    }
+    y += 6;
+  }
+  return pageNum;
+}
+
 function infoPage(doc, background, topic, content, pageNum) {
   const y = makePage(doc, background, topic.title, topic.chapter, pageNum);
   doc.setFont("times", "italic");
@@ -330,13 +357,11 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
   // 7–16. Lecture personnelle structurée : une section par thème,
   // avec pages de continuation si le texte le nécessite.
   for (const topic of TOPICS) {
-    if (topic.id === "mounts" && assets.mounts) {
-      doc.addPage();
-      fullPage(doc, assets.mounts);
-      page++;
-    }
     page++;
-    page = infoPage(doc, assets.background, topic, (groups[topic.id] || []).join("\n\n"), page);
+    const chapterText = (groups[topic.id] || []).join("\n\n");
+    page = topic.id === "mounts" && assets.mounts
+      ? mountsIllustratedPage(doc, assets.background, assets.mounts, topic, chapterText, page)
+      : infoPage(doc, assets.background, topic, chapterText, page);
   }
   return doc.output("blob");
 }
