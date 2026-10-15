@@ -140,13 +140,13 @@ export default async function(req) {
     }
     messages.push({ role: 'user', content: userContent });
 
-    const maxTokens = mode === 'deep' ? 3000 : mode === 'reading' ? 2000 : 1200;
+    const maxTokens = mode === 'deep' ? 6000 : mode === 'reading' ? 2000 : 1200;
     const apiKey = secrets.get('OPENAI_API_KEY');
     const oaRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: MODEL, messages, max_tokens: maxTokens, temperature: 0.65 }),
-      signal: AbortSignal.timeout(90000),
+      signal: AbortSignal.timeout(mode === 'deep' ? 180000 : 90000),
     });
 
     if (!oaRes.ok) {
