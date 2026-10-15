@@ -1,27 +1,28 @@
-# Chiromancia Android / Capacitor / Google Play Billing
+# Chiromancia — préparation Android / Google Play
 
-Le projet Capacitor Android est généré dans `android/`. L'interface React appelle le plugin natif `ChiromanciaBilling` qui utilise Google Play Billing 8.0.0.
+Identifiant Android définitif : `solutions.mynova.chiromancia`.
 
-Produits prévus (à créer dans Google Play Console, prix à y définir) :
-- `chiromancia_rapport_complet` : produit intégré non consommable, 4,99 EUR.
-- `chiromancia_questions_illimitees` : abonnement mensuel, 6,99 EUR.
+## Produits
 
-Identifiant Android provisoire : `solutions.mynova.chiromancia`. Le confirmer **avant publication**.
+- `chiromancia_rapport_complet` : achat intégré **consommable**, 4,99 € **par lecture**. Le serveur vérifie le jeton, lie l'achat au compte et au scan, puis consomme le produit Google Play pour permettre un nouvel achat. Le rapport reste accessible dans le compte via le droit enregistré sur le serveur.
+- `chiromancia_questions_illimitees` : abonnement mensuel, 6,99 €. Trois questions gratuites avant abonnement. Aucun privilège admin.
 
-## Réalisé
-- Projet Capacitor Android, compilation Vite et synchronisation Capacitor.
-- Plugin natif Java : lancement d'achat unique, souscription, restauration des achats.
-- Retour des jetons d'achat à JavaScript **sans attribuer de droits**.
+## Code réalisé
 
-## Obligatoire avant tout lancement commercial
-- Créer les deux produits et les offres dans Play Console.
-- Vérifier les jetons d'achat sur le serveur avec Google Play Developer API (compte de service), en liant chaque achat à l'utilisateur authentifié et, pour le rapport, au scan concerné.
-- Faire respecter les droits par les fonctions serveur et verrouiller les écritures de statut d'achat dans les règles d'accès des entités. Ne pas faire confiance aux champs modifiables par le client.
-- Accuser réception des achats vérifiés dans les délais Google Play, gérer pending, renouvellements, annulations, remboursements et notifications RTDN.
-- Tester dans Google Play avec un compte de test et un bundle signé.
-- Vérifier les fonctionnalités appareil photo et PDF dans la version Android.
-- Installer Android Studio / JDK localement puis exécuter `npx cap open android` et une compilation Gradle. Le sandbox actuel ne dispose pas de Java : compilation native non vérifiée.
+- Projet Capacitor Android et plugin natif Google Play Billing.
+- Validation des jetons via Google Play Developer API dans `verifyPlayPurchase`.
+- Droit premium stocké dans `PlayEntitlement`, écriture réservée au serveur.
+- Rapport approfondi et questions au-delà du quota protégés côté serveur.
+- Sauvegarde des liens PDF via fonction serveur après contrôle du droit.
+- Interface de restauration des achats ; les rapports consommés sont restaurés via les droits du compte Base44, pas via la liste d'achats actifs de Google Play.
 
-**Aucun accès premium n'est accordé sur la seule base d'un résultat natif.** L'intégration serveur est encore à réaliser.
+## À finaliser avant diffusion
 
-Pour iOS, ajouter ultérieurement Capacitor iOS et StoreKit avec la même validation de droits côté serveur.
+- Ajouter le secret serveur `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` et autoriser son compte de service dans Play Console.
+- Créer les produits Google Play avec les identifiants exacts ci-dessus.
+- Gérer les événements d'abonnement et remboursements (RTDN), revérifier les abonnements au serveur et traiter les échecs temporaires de consommation.
+- Vérifier la cohérence des droits et le comportement des achats annulés/remboursés.
+- Générer et signer l'AAB avec Android Studio, puis le déposer sur une piste de test Google Play.
+- Vérifier dans la version installée depuis Google Play le paiement, l'appareil photo, le rapport et le PDF.
+
+La compilation Vite et la synchronisation Capacitor ne prouvent pas que le code Java Android compile. L'AAB natif reste à produire dans Android Studio.
