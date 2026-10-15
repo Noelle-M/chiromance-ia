@@ -22,6 +22,17 @@ async function purchase(productId, type) {
   }
 }
 
+export async function acknowledgeVerifiedPurchase(purchaseToken) {
+  if (!isBillingAvailable() || !purchaseToken) return false;
+  try {
+    const result = await Billing.acknowledgePurchase({ purchaseToken });
+    return result.acknowledged === true;
+  } catch (error) {
+    console.warn('Google Play acknowledgement pending', error);
+    return false;
+  }
+}
+
 export function buyReport() {
   return purchase(PLAY_PRODUCTS.report, "inapp");
 }
