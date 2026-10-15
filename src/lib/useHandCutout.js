@@ -19,8 +19,8 @@ export function useHandCutout(photoUrl) {
         const imageResponse = await fetch(photoUrl, { signal: controller.signal });
         if (!imageResponse.ok) throw new Error("Photo inaccessible");
         const form = new FormData();
-        form.append("file", await imageResponse.blob(), "main.jpg");
-        const response = await fetch(SAM2_URL, {
+        form.append("photo", await imageResponse.blob(), "main.jpg");
+        const response = await fetch(`${SAM2_URL.replace(/\/$/, "")}/sam2/cutout`, {
           method: "POST",
           body: form,
           signal: controller.signal,
