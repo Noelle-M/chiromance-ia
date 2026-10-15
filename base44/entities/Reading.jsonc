@@ -55,6 +55,11 @@
           }
         }
       ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "__service_only__"
+      }
     }
   }
 }
