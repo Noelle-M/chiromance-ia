@@ -74,8 +74,43 @@ function cleanMarkdown(markdown) {
     .trim();
 }
 
+function safeText(text) {
+  return String(text || "")
+    .normalize("NFC")
+    .replace(/[\u00a0\u202f\u2007]/g, " ")
+    .replace(/[\u200b-\u200d\ufeff]/g, "")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\s+/g, " ").trim();
+}
+
+function wrapSafe(doc, text, width) {
+  const words = safeText(text).split(" ").filter(Boolean);
+  const result = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? line + " " + word : word;
+    if (doc.getTextWidth(candidate) <= width - 3) {
+      line = candidate;
+    } else {
+      if (line) result.push(line);
+      line = word;
+      // Prevent a single oversized token from escaping the right margin.
+      while (doc.getTextWidth(line) > width - 3 && line.length > 1) {
+        let n = line.length - 1;
+        while (n > 1 && doc.getTextWidth(line.slice(0, n)) > width - 3) n--;
+        result.push(line.slice(0, n));
+        line = line.slice(n);
+      }
+    }
+  }
+  if (line) result.push(line);
+  return result;
+}
+
 function renderContent(doc, markdown, y) {
-  const blocks = cleanMarkdown(markdown).split(/\n\s*\n/);
+  const blocks = cleanMarkdown(markdown).split(/\n\s*\n/);\n  doc.setCharSpace(0);
   const bottom = 266;
   const ensure = (height) => {
     if (y + height > bottom) y = newContentPage(doc, "");
@@ -88,7 +123,7 @@ function renderContent(doc, markdown, y) {
       const title = heading[2].replace(/\*\*/g, "").trim();
       doc.setFont("times", "bold");
       doc.setFontSize(15);
-      const lines = doc.splitTextToSize(title, WIDTH);
+      const lines = wrapSafe(doc, title, WIDTH);
       const height = lines.length * 7 + 9;
       ensure(height + 13);
       y += 6;
@@ -107,7 +142,7 @@ function renderContent(doc, markdown, y) {
         doc.setFont("times", "normal");
         doc.setFontSize(11.5);
         doc.setTextColor(...TEXT);
-        const lines2 = doc.splitTextToSize(para.replace(/\*\*/g, ""), WIDTH);
+        const lines2 = wrapSafe(doc, para.replace(/\*\*/g, ""), WIDTH);
         for (const line of lines2) { ensure(6); doc.text(line, MARGIN, y); y += 5.7; }
         y += 3;
       }
@@ -117,7 +152,7 @@ function renderContent(doc, markdown, y) {
     doc.setFont("times", "normal");
     doc.setFontSize(11.5);
     doc.setTextColor(...TEXT);
-    const lines = doc.splitTextToSize(normalized, WIDTH);
+    const lines = wrapSafe(doc, normalized, WIDTH);
     for (const line of lines) {
       ensure(6.5);
       doc.text(line, MARGIN, y);
