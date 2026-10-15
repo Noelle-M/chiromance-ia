@@ -7,7 +7,7 @@ import CameraCapture from "@/components/CameraCapture";
 const PARCOURS = [
   { id: 'full', title: 'Lecture complète', desc: 'Main droite puis main gauche', hands: ['right', 'left'] },
   { id: 'quick', title: 'Lecture rapide', desc: 'Main droite uniquement', hands: ['right'] },
-  { id: 'compatibility', title: 'Compatibilité amoureuse', desc: 'Main droite uniquement', hands: ['right'] },
+  { id: 'compatibility', title: 'Compatibilité', desc: 'Main droite uniquement', hands: ['right'] },
 ];
 
 export default function Scanner() {
