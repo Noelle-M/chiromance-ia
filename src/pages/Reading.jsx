@@ -260,7 +260,7 @@ export default function Reading() {
             </div>
           )}
 
-          <ReadingMarkdown>{reading.free_content}</ReadingMarkdown>
+          <ReadingMarkdown showLineColors>{reading.free_content}</ReadingMarkdown>
 
           <div className="gold-divider my-6" />
 
