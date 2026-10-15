@@ -78,7 +78,19 @@ Développe les domaines qui trouvent des indices visibles : vie affective, pens�
 
 Rédige une consultation vivante, détaillée et agréable à lire, avec de vrais paragraphes développés et des sous-titres utiles. Approfondis séparément les lignes de vie, de tête et de cœur, puis les signes secondaires et les monts réellement discernables. Consacre aussi une analyse spécifique aux relations entre les lignes : départs communs, croisements, rapprochements et variations visibles. Explique les nuances et les différentes interprétations possibles plutôt que de répéter des généralités. La version payante doit apporter plusieurs pages de matière nouvelle, uniquement si la photographie permet ces observations. La valeur ajoutée doit être réelle par rapport à la version gratuite : approfondis surtout les relations entre plusieurs signes visibles et les nuances de leurs interprétations. Chaque section doit apporter des détails supplémentaires concrets plutôt que reformuler les mêmes observations. N'ajoute aucune section artificielle pour remplir, aucun résumé qui répète tout le texte, aucune question commerciale finale. Si la photo ne permet pas une analyse plus détaillée, reconnais-le explicitement au lieu d'inventer.
 
-FORMAT STRICT : titres en Markdown sous la forme « ## Titre » uniquement, sur une ligne à part. N'écris JAMAIS de ligne contenant seulement « # », « ## » ou « ### ». N'utilise pas de dièses décoratifs, de séparateurs à base de dièses ou de faux titres. Sépare les paragraphes par une ligne vide.`;
+FORMAT STRICT POUR LE LIVRET PREMIUM : respecte exactement les dix titres suivants, dans cet ordre, chacun seul sur sa ligne, précédé de ## :
+## Votre ligne de vie
+## Votre ligne du destin
+## Les signes particuliers
+## Les monts de votre main
+## Les empreintes du passé
+## Ce que raconte votre présent
+## Les chemins possibles de l'avenir
+## Quand vos lignes se répondent
+## Votre portrait chiromantique
+## Ce qui distingue votre main
+
+Chaque chapitre doit apporter une lecture réellement nouvelle et personnalisée, avec des paragraphes développés, compréhensibles pour un débutant. Décris les signes visibles puis leur signification traditionnelle et leurs nuances. Le passé, le présent et l'avenir occupent chacun un chapitre narratif distinct. Si une caractéristique est trop peu visible, écris-le sans inventer, et approfondis seulement les observations vérifiables. La main gauche ne doit jamais être décrite si seule la droite est fournie. Évite de répéter les mêmes formulations d'un chapitre à l'autre. Les planches pédagogiques consacrées aux deux mains, à la carte générale, au cœur et à la tête sont ajoutées séparément au PDF : ne recopie pas leur contenu encyclopédique. N'écris JAMAIS de ligne contenant seulement « # », « ## » ou « ### ». Sépare les paragraphes par une ligne vide.`;
 
 const MISMATCH_NOTE = `\n\nL'utilisateur conteste une interprétation. Reconnais explicitement toute déduction biographique injustifiée. Ne change pas les caractéristiques visuelles pour lui donner raison. Explique ce qui reste observable et ce qui ne peut pas être déduit de la main.`;
 
