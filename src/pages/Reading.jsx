@@ -7,6 +7,7 @@ import ChatPanel from "@/components/ChatPanel";
 import { base44 } from "@/api/base44Client";
 import PalmCanvas from "@/components/PalmCanvas";
 import { generateReportPdf } from "@/lib/generateReportPdf";
+import { buyReport, subscribeQuestions } from "@/lib/googlePlayBilling";
 
 export default function Reading() {
   const { scanId } = useParams();
@@ -121,8 +122,8 @@ export default function Reading() {
     setSubscribeBusy(true);
     setSubNotice("");
     try {
-      // Aucun déblocage manuel : la confirmation du prestataire de paiement est obligatoire.
-      setSubNotice("Le paiement (6,99 €/mois) sera activé lors du branchement des achats intégrés Google Play / App Store. Aucun abonnement n'est activé sans paiement confirmé.");
+      const result = await subscribeQuestions();
+      setSubNotice(!result.available ? "Achats Google Play indisponibles sur cette version." : result.success ? "Achat reçu. La validation du paiement doit encore être confirmée avant activation." : "Abonnement non activé : " + (result.error || "paiement non confirmé."));
     } catch (e) {
       setSubNotice("Souscription impossible pour le moment.");
     }
@@ -153,10 +154,14 @@ export default function Reading() {
         }
         setDeepBusy(false);
       }
-      setError("Le paiement (4,99 €) sera activé lors du branchement des achats intégrés Google Play / App Store. En mode développement, le rapport complet est débloqué manuellement.");
-      await base44.entities.Report.update(rep.id, { purchase_status: "unlocked" });
-      const repPage = await base44.entities.Report.filter({ reading_id: reading.id }, { limit: 1 });
-      if (repPage.items?.length) setReport(repPage.items[0]);
+      const payment = await buyReport();
+      if (!payment.available) {
+        setError("Achats Google Play indisponibles sur cette version.");
+      } else if (payment.success) {
+        setError("Achat reçu. Le rapport sera accessible après vérification du paiement.");
+      } else {
+        setError("Paiement non confirmé : " + (payment.error || "achat annulé ou en attente."));
+      }
     } catch (e) {
       setError("Action impossible pour le moment.");
     }
