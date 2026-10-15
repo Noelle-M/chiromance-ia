@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import ReadingMarkdown from "@/components/ReadingMarkdown";
 
@@ -23,12 +23,13 @@ function splitChapters(markdown) {
 
 export default function ReportAccordion({ content }) {
   const chapters = splitChapters(content);
+  const [openIndex, setOpenIndex] = useState(null);
   if (!chapters.length) return null;
   return (
     <div className="space-y-2">
       {chapters.map((chapter, index) => (
-        <details key={index} className="group rounded-xl border border-primary/30 bg-white/[0.035] overflow-hidden">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-primary font-display text-lg hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+        <details key={index} open={openIndex === index} onToggle={(event) => { if (event.currentTarget.open && openIndex !== index) setOpenIndex(index); }} className="group rounded-xl border border-primary/30 bg-white/[0.035] overflow-hidden">
+          <summary onClick={(event) => { event.preventDefault(); setOpenIndex(openIndex === index ? null : index); }} className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-primary font-display text-lg hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
             <span>{chapter.title}</span>
             <ChevronDown size={18} className="shrink-0 transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
           </summary>
