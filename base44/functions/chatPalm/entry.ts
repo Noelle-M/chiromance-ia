@@ -131,7 +131,7 @@ export default async function(req) {
     if (!scanId) return Response.json({ error: 'scan_id requis' }, { status: 400 });
 
     const scan = await base44.entities.Scan.get(scanId);
-    if (!scan) return Response.json({ error: 'Scan introuvable' }, { status: 404 });
+    if (!scan || scan.created_by_id !== user.id) return Response.json({ error: 'Scan introuvable' }, { status: 404 });
 
     // Photographies signées transmises à GPT pour examen direct de la main.
     const photoUrls = [];
@@ -153,6 +153,7 @@ export default async function(req) {
     if (!mode) {
       mode = body.message && body.message.trim() ? 'chat' : (history.length === 0 ? 'reading' : 'chat');
     }
+    if (!['chat', 'reading', 'deep'].includes(mode)) return Response.json({ error: 'Mode invalide' }, { status: 400 });
 
     // Quota appliqué côté serveur pour tous les comptes, administrateurs compris.
     // L'ancien indicateur chat_subscribed est ignoré tant que le paiement
