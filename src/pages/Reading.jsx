@@ -172,8 +172,9 @@ export default function Reading() {
       setError('Paiement vérifié. Rapport complet disponible.');
     } catch (e) {
       setError("Action impossible pour le moment.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   };
 
   const regenerateDeep = async () => {
