@@ -54,10 +54,6 @@ Deno.serve(async (req) => {
       (productId === REPORT && entry.scan_id !== scanId))) {
       return Response.json({ error: 'purchase_already_linked' }, { status: 409 });
     }
-    // Les achats consommés restent acquis au rapport initial, même après réinstallation.
-    if (productId === REPORT && linked.some((entry: any) => entry.status === 'active')) {
-      return Response.json({ verified: true, productId, scanId, alreadyOwned: true });
-    }
     const raw = await secrets.get('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON');
     if (!raw) return Response.json({ error: 'billing_not_configured' }, { status: 503 });
     const accessToken = await googleAccessToken(JSON.parse(raw));
@@ -74,7 +70,7 @@ Deno.serve(async (req) => {
     const active = productId === SUB
       ? Boolean(line && expiry && Date.parse(expiry) > Date.now() &&
           ['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'].includes(purchase.subscriptionState))
-      : purchase.purchaseState === 0 && purchase.consumptionState === 0;
+      : purchase.purchaseState === 0 && (purchase.consumptionState === 0 || linked.some((entry: any) => entry.status === 'active'));
     if (!active) return Response.json({ error: 'purchase_not_active' }, { status: 402 });
 
     const records = linked;
@@ -85,11 +81,11 @@ Deno.serve(async (req) => {
     else await base44.asServiceRole.entities.PlayEntitlement.create(record);
     if (productId === REPORT) {
       // Consommation après enregistrement du droit : permet de payer un nouveau rapport.
-      const consume = await fetch(
+      const consume = purchase.consumptionState === 0 ? await fetch(
         `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}/purchases/products/${REPORT}/tokens/${encodeURIComponent(purchaseToken)}:consume`,
         { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken } },
-      );
-      if (!consume.ok) console.error('Google Play consume pending', consume.status);
+      ) : null;
+      if (consume && !consume.ok) console.error('Google Play consume pending', consume.status);
       const reports = await base44.asServiceRole.entities.Report.filter({ scan_id: scanId });
       for (const report of (reports.items || [])) {
         if (report.created_by_id === user.id) await base44.asServiceRole.entities.Report.update(report.id, { purchase_status: 'unlocked' });
