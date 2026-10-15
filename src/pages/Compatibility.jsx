@@ -43,7 +43,9 @@ export default function Compatibility() {
     if (view !== "waiting" || !compat) return;
     const id = setInterval(async () => {
       try {
-        const fresh = await base44.entities.Compatibility.get(compat.id);
+        const state = await base44.functions.invoke('getCompatibilityState', { compatibilityId: compat.id });
+        const fresh = state.data?.compatibility;
+        if (!fresh) return;
         if (fresh.status === "completed" && fresh.result_content) {
           setCompat(fresh);
           setView("result");
@@ -62,16 +64,9 @@ export default function Compatibility() {
     try {
       const scanId = selectedScan || scans[0]?.id;
       if (!scanId) { setError("Sélectionnez un scan de votre main droite."); setBusy(false); return; }
-      const me = await base44.auth.me();
-      const invitation_code = (crypto.randomUUID?.() || String(Date.now())).replace(/-/g, '').slice(0, 10);
-      const c = await base44.entities.Compatibility.create({
-        participant_a_id: me.id,
-        scan_a_id: scanId,
-        invitation_code,
-        status: 'pending',
-        consent_a: true,
-      });
-      setCompat(c);
+      const response = await base44.functions.invoke('createCompatibilityInvite', { scanId });
+      if (!response.data?.compatibility) throw new Error('invitation_failed');
+      setCompat(response.data.compatibility);
       setView('waiting');
     } catch (e) { setError("Impossible de créer l'invitation."); }
     setBusy(false);
@@ -81,31 +76,24 @@ export default function Compatibility() {
     setBusy(true);
     setError("");
     try {
-      const page = await base44.entities.Compatibility.filter({ invitation_code: code.trim() }, { limit: 1 });
-      const c = page.items?.[0];
-      if (!c) { setError("Code d'invitation introuvable."); setBusy(false); return; }
-      const me = await base44.auth.me();
       const scanFromCapture = new URLSearchParams(window.location.search).get('scan');
       const myScans = scanFromCapture ? { items: [{ id: scanFromCapture }] } : await base44.entities.Scan.filter({ scan_type: 'compatibility', status: 'analyzed' }, { sort: '-created_date', limit: 1 });
       if (!myScans.items?.length) { navigate(`/scanner?compatInvite=${encodeURIComponent(code.trim())}`); return; }
-      await base44.entities.Compatibility.update(c.id, {
-        participant_b_id: me.id,
-        scan_b_id: myScans.items[0].id,
-        consent_b: true,
-        status: 'accepted',
-      });
+      const accepted = await base44.functions.invoke('acceptCompatibilityInvite', { code: code.trim(), scanId: myScans.items[0].id });
+      const c = accepted.data?.compatibility;
+      if (!c) throw new Error('invitation_invalid');
       // Generate the compatibility reading server-side (service role LLM).
       await base44.functions.invoke('analyzeCompatibility', { compatibility_id: c.id });
-      const done = await base44.entities.Compatibility.get(c.id);
-      setCompat(done);
-      setView('result');
+      const done = await base44.functions.invoke('getCompatibilityState', { compatibilityId: c.id });
+      setCompat(done.data.compatibility);
+      setView(done.data.compatibility.status === 'completed' ? 'result' : 'waiting');
     } catch (e) { setError("Impossible d'accepter l'invitation."); }
     setBusy(false);
   };
 
   const cancelInvitation = async () => {
     if (!compat) return;
-    try { await base44.entities.Compatibility.update(compat.id, { status: 'cancelled' }); setView('home'); setCompat(null); } catch (e) {}
+    try { setView('home'); setCompat(null); } catch (e) {}
   };
 
   const shareUrl = compat ? `${window.location.origin}/compatibilite?code=${compat.invitation_code}` : "";
@@ -169,7 +157,7 @@ export default function Compatibility() {
           </div>
           <p className="text-[11px] text-muted-foreground">Code de secours : {compat.invitation_code}</p>
           <button onClick={cancelInvitation} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
-            <X size={16} /> Annuler l'invitation
+            <X size={16} /> Quitter cette page
           </button>
         </div>
       )}
