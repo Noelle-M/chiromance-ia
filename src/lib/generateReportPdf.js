@@ -283,9 +283,11 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
       noteY += 5.5;
       const source = (groups[note.id] || []).join(" ");
       const clean = textSafe(source);
-      const summary = clean
-        ? (clean.length > 225 ? clean.slice(0, 225).replace(/\s+\S*$/, "") + "..." : clean)
-        : "Observation détaillée dans le chapitre correspondant, si le tracé est visible.";
+      // Extrait une phrase complète au lieu de couper le texte avec des points de suspension.
+      const sentences = clean.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+      const summary = sentences.map(s => s.trim()).find(s => s.length >= 28 && s.length <= 195)
+        || (sentences[0]?.trim().length <= 195 ? sentences[0]?.trim() : "")
+        || "Les détails de cette zone sont développés dans le chapitre correspondant.";
       doc.setFont("times", "normal");
       doc.setFontSize(9);
       const lines = doc.splitTextToSize(summary, 61).slice(0, 9);
