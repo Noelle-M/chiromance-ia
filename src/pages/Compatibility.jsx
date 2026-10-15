@@ -92,6 +92,7 @@ export default function Compatibility() {
       const done = await base44.functions.invoke('getCompatibilityState', { compatibilityId: c.id });
       setCompat(done.data.compatibility);
       setView(done.data.compatibility.status === 'completed' ? 'result' : 'waiting');
+      sessionStorage.removeItem('chiromancia_compat_invite');
     } catch (e) { setError("Impossible d'accepter l'invitation."); }
     setBusy(false);
   };
