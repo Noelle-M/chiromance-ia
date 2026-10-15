@@ -76,7 +76,7 @@ Construis une lecture approfondie à partir des détails DISTINCTIFS réellement
 
 Développe les domaines qui trouvent des indices visibles : vie affective, pensée, orientations personnelles, parcours professionnel, changements, déplacements. Explore plusieurs lectures possibles quand un signe est ambigu. Le passé, le présent et l'avenir sont des lectures symboliques, jamais des événements réels que la photo permettrait de vérifier ou de prévoir. Ne transforme JAMAIS une absence de cassure, de ligne de voyage ou de bifurcation en affirmation de stabilité biographique, absence de crise ou absence de changement futur.
 
-Rédige une consultation vivante, détaillée et agréable à lire, avec de vrais paragraphes développés et des sous-titres utiles. La valeur ajoutée doit être réelle par rapport à la version gratuite : approfondis surtout les relations entre plusieurs signes visibles et les nuances de leurs interprétations. Chaque section doit apporter des détails supplémentaires concrets plutôt que reformuler les mêmes observations. N'ajoute aucune section artificielle pour remplir, aucun résumé qui répète tout le texte, aucune question commerciale finale. Si la photo ne permet pas une analyse plus détaillée, reconnais-le explicitement au lieu d'inventer.
+Rédige une consultation vivante, détaillée et agréable à lire, avec de vrais paragraphes développés et des sous-titres utiles. Approfondis séparément les lignes de vie, de tête et de cœur, puis les signes secondaires et les monts réellement discernables. Consacre aussi une analyse spécifique aux relations entre les lignes : départs communs, croisements, rapprochements et variations visibles. Explique les nuances et les différentes interprétations possibles plutôt que de répéter des généralités. La version payante doit apporter plusieurs pages de matière nouvelle, uniquement si la photographie permet ces observations. La valeur ajoutée doit être réelle par rapport à la version gratuite : approfondis surtout les relations entre plusieurs signes visibles et les nuances de leurs interprétations. Chaque section doit apporter des détails supplémentaires concrets plutôt que reformuler les mêmes observations. N'ajoute aucune section artificielle pour remplir, aucun résumé qui répète tout le texte, aucune question commerciale finale. Si la photo ne permet pas une analyse plus détaillée, reconnais-le explicitement au lieu d'inventer.
 
 FORMAT STRICT : titres en Markdown sous la forme « ## Titre » uniquement, sur une ligne à part. N'écris JAMAIS de ligne contenant seulement « # », « ## » ou « ### ». N'utilise pas de dièses décoratifs, de séparateurs à base de dièses ou de faux titres. Sépare les paragraphes par une ligne vide.`;
 
@@ -118,9 +118,13 @@ export default async function(req) {
 
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'system', content: "Analyse directement la photographie originale, sans description intermédiaire. Observe chaque main indépendamment. Appuie chaque interprétation symbolique sur une caractéristique visible, précise et localisable sur CETTE photo. Évite les portraits psychologiques passe-partout, les prédictions affirmatives et les événements inventés. Si les plis sont trop peu visibles, signale la limite et demande une meilleure photo. Les lignes dorées de Palm Line Reader sont un effet visuel indépendant, jamais une source d'informations." }];
 
-    // Rejoue l'historique (texte uniquement) pour conserver le contexte du scan.
-    for (const m of history) {
-      messages.push({ role: m.role, content: m.content });
+    // For the full report, preserve the free reading as reference without replaying all chats.
+    if (mode === 'deep') {
+      const previous = await base44.entities.Reading.filter({ scan_id: scanId }, { sort: '-created_date', limit: 1 });
+      const free = previous.items?.[0]?.free_content || '';
+      if (free) messages.push({ role: 'system', content: 'Lecture gratuite déjà remise au client, à approfondir sans répétition :\n' + free });
+    } else {
+      for (const m of history) messages.push({ role: m.role, content: m.content });
     }
 
     let userText = '';
