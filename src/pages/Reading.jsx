@@ -7,7 +7,7 @@ import ChatPanel from "@/components/ChatPanel";
 import { base44 } from "@/api/base44Client";
 import PalmCanvas from "@/components/PalmCanvas";
 import { generateReportPdf } from "@/lib/generateReportPdf";
-import { buyReport, subscribeQuestions } from "@/lib/googlePlayBilling";
+import { buyReport, subscribeQuestions, restorePurchases, PLAY_PRODUCTS } from "@/lib/googlePlayBilling";
 
 export default function Reading() {
   const { scanId } = useParams();
@@ -31,6 +31,7 @@ export default function Reading() {
   const [reportEntitled, setReportEntitled] = useState(false);
   const [freeQuestionCount, setFreeQuestionCount] = useState(0);
   const [subscribeBusy, setSubscribeBusy] = useState(false);
+  const [restoreBusy, setRestoreBusy] = useState(false);
   const [subNotice, setSubNotice] = useState("");
 
   const FREE_QUESTIONS = 3;
@@ -136,6 +137,36 @@ export default function Reading() {
       setSubNotice("Souscription impossible pour le moment.");
     }
     setSubscribeBusy(false);
+  };
+
+  const restorePlayRights = async () => {
+    setRestoreBusy(true);
+    setSubNotice("");
+    try {
+      const result = await restorePurchases();
+      if (!result.available) { setSubNotice("Restauration disponible dans l'application Android."); return; }
+      let restored = 0;
+      for (const purchase of (result.purchases || [])) {
+        const products = purchase.products || [];
+        if (products.includes(PLAY_PRODUCTS.questions)) {
+          const verified = await base44.functions.invoke("verifyPlayPurchase", {
+            productId: PLAY_PRODUCTS.questions, purchaseToken: purchase.purchaseToken,
+          });
+          if (verified.data?.verified) { setChatSubscribed(true); restored++; }
+        }
+        if (products.includes(PLAY_PRODUCTS.report)) {
+          const verified = await base44.functions.invoke("verifyPlayPurchase", {
+            productId: PLAY_PRODUCTS.report, purchaseToken: purchase.purchaseToken, scanId,
+          });
+          if (verified.data?.verified) { setReportEntitled(true); restored++; }
+        }
+      }
+      setSubNotice(restored ? "Vos achats ont été restaurés." : "Aucun achat actif à restaurer pour cette lecture.");
+    } catch (e) {
+      setSubNotice("Impossible de restaurer les achats pour le moment.");
+    } finally {
+      setRestoreBusy(false);
+    }
   };
 
   const handleReveal = async () => {
@@ -319,6 +350,8 @@ export default function Reading() {
               {deepBusy ? "Génération de la lecture approfondie…" : (<span className="text-center leading-tight">Révéler mon rapport complet<br /><span className="text-sm opacity-90">4,99 € · paiement unique</span></span>)}
             </button>
           )}
+          <button onClick={restorePlayRights} disabled={restoreBusy} className="w-full text-xs text-primary underline mt-4 py-2">{restoreBusy ? "Restauration en cours…" : "Restaurer mes achats Google Play"}</button>
+          {subNotice && <p className="text-[11px] text-muted-foreground text-center mt-2">{subNotice}</p>}
           {error && <p className="text-[11px] text-muted-foreground mt-3 text-center leading-relaxed">{error}</p>}
         </>
       ) : (
