@@ -34,7 +34,7 @@ export default function Home() {
             Et si vos mains avaient une histoire à raconter ?
           </h1>
           <p className="mt-5 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-            Photographiez vos paumes, laissez l'intelligence artificielle révéler vos lignes, et découvrez leurs significations au fil des traditions de chiromancie.
+            Photographiez vos paumes, laissez ChiromancIA révéler vos lignes, et découvrez leurs significations au fil des traditions de chiromancie.
           </p>
         </div>
       </section>
