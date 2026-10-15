@@ -279,7 +279,7 @@ export default async function(req) {
       });
     }
     const kind = mode === 'reading' ? 'reading' : mode === 'deep' ? 'deep' : (body.signal_mismatch ? 'revision' : 'chat');
-    await base44.entities.ChatMessage.create({
+    if (mode !== 'deep') await base44.entities.ChatMessage.create({
       scan_id: scanId,
       role: 'assistant',
       content: reply,
@@ -299,10 +299,13 @@ export default async function(req) {
       }
     } else if (mode === 'deep') {
       if (existing) {
-        await base44.asServiceRole.entities.Reading.update(existing.id, { full_content: reply });
+        const paid = await base44.asServiceRole.entities.PremiumReading.filter({ scan_id: scanId }, { limit: 1 });
+        if (paid.items?.length) await base44.asServiceRole.entities.PremiumReading.update(paid.items[0].id, { content: reply });
+        else await base44.asServiceRole.entities.PremiumReading.create({ scan_id: scanId, content: reply });
       } else {
-        const created = await base44.asServiceRole.entities.Reading.create({ scan_id: scanId, free_content: '', full_content: reply, summary: '', version: '1' });
+        const created = await base44.asServiceRole.entities.Reading.create({ scan_id: scanId, free_content: '', summary: '', version: '1' });
         readingId = created.id;
+        await base44.asServiceRole.entities.PremiumReading.create({ scan_id: scanId, content: reply });
       }
     }
 
