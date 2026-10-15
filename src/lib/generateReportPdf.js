@@ -82,7 +82,7 @@ function makePage(doc, background, title, chapter, pageNum) {
   doc.setFont("times", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...MUTED);
-  doc.text("CHIROMANCIE IA  |  Lecture symbolique", 28, 276);
+  doc.text("CHIROMANCIA  |  Lecture symbolique", 28, 276);
   doc.text(String(pageNum), 181, 276, { align: "right" });
   return 79 + (titles.length - 1) * 8;
 }
@@ -230,7 +230,7 @@ export async function generateReportPdf({ reading, rightPhotoUrl, leftPhotoUrl, 
   doc.setFont("times", "bold");
   doc.setFontSize(30);
   doc.setTextColor(233, 195, 114);
-  doc.text("CHIROMANCIE IA", 105, 43, { align: "center" });
+  doc.text("CHIROMANCIA", 105, 43, { align: "center" });
   doc.setFont("times", "italic");
   doc.setFontSize(16);
   doc.setTextColor(251, 240, 224);
