@@ -60,10 +60,9 @@ export default function Reading() {
       let ownsReport = false;
       try {
         const me = await base44.auth.me();
-        const entitlements = await base44.entities.PlayEntitlement.filter({ product_id: 'chiromancia_questions_illimitees', status: 'active' });
-        setChatSubscribed((entitlements.items || []).some((r) => r.user_id === me.id && r.expires_at && Date.parse(r.expires_at) > Date.now()));
-        const reportRights = await base44.entities.PlayEntitlement.filter({ product_id: 'chiromancia_rapport_complet', scan_id: scanId, status: 'active' });
-        ownsReport = (reportRights.items || []).some((r) => r.user_id === me.id);
+        const rights = await base44.functions.invoke('getMyPlayRights', { scanId });
+        setChatSubscribed(rights.data?.questionsSubscribed === true);
+        ownsReport = rights.data?.reportEntitled === true;
         setReportEntitled(ownsReport);
         const used = await base44.entities.ChatMessage.count({ role: 'user', created_by_id: me.id, kind: { $in: ['chat', 'revision'] } });
         setFreeQuestionCount(used || 0);
