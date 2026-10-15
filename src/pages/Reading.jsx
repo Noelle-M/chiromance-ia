@@ -57,7 +57,8 @@ export default function Reading() {
 
       try {
         const me = await base44.auth.me();
-        setChatSubscribed(false); // Abonnement uniquement après validation de paiement.
+        const entitlements = await base44.entities.PlayEntitlement.filter({ product_id: 'chiromancia_questions_illimitees', status: 'active' });
+        setChatSubscribed((entitlements.items || []).some((r) => r.user_id === me.id && r.expires_at && Date.parse(r.expires_at) > Date.now()));
         const used = await base44.entities.ChatMessage.count({ role: 'user', created_by_id: me.id, kind: { $in: ['chat', 'revision'] } });
         setFreeQuestionCount(used || 0);
       } catch (e) {}
@@ -123,7 +124,11 @@ export default function Reading() {
     setSubNotice("");
     try {
       const result = await subscribeQuestions();
-      setSubNotice(!result.available ? "Achats Google Play indisponibles sur cette version." : result.success ? "Achat reçu. La validation du paiement doit encore être confirmée avant activation." : "Abonnement non activé : " + (result.error || "paiement non confirmé."));
+      if (result.success && result.purchaseToken) {
+        const verified = await base44.functions.invoke('verifyPlayPurchase', { productId: 'chiromancia_questions_illimitees', purchaseToken: result.purchaseToken });
+        if (verified.data?.verified) { setChatSubscribed(true); setSubNotice('Abonnement actif.'); }
+        else setSubNotice('Paiement en attente de validation.');
+      } else setSubNotice(!result.available ? 'Achats Google Play indisponibles sur cette version.' : 'Abonnement non activé : ' + (result.error || 'paiement non confirmé.'));
     } catch (e) {
       setSubNotice("Souscription impossible pour le moment.");
     }
@@ -139,7 +144,12 @@ export default function Reading() {
         rep = await base44.entities.Report.create({ reading_id: reading.id, scan_id: scanId, purchase_status: "locked" });
         setReport(rep);
       }
-      // Génère la lecture approfondie via GPT-4.1 si elle n'existe pas encore.
+      const payment = await buyReport();
+      if (!payment.available) { setError('Achats Google Play indisponibles sur cette version.'); return; }
+      if (!payment.success || !payment.purchaseToken) { setError('Paiement non confirmé.'); return; }
+      const verified = await base44.functions.invoke('verifyPlayPurchase', { productId: 'chiromancia_rapport_complet', purchaseToken: payment.purchaseToken, scanId });
+      if (!verified.data?.verified) { setError('Achat en attente de validation.'); return; }
+      // Génère la lecture approfondie uniquement après vérification Google Play.
       if (!reading.full_content) {
         setDeepBusy(true);
         try {
@@ -154,14 +164,8 @@ export default function Reading() {
         }
         setDeepBusy(false);
       }
-      const payment = await buyReport();
-      if (!payment.available) {
-        setError("Achats Google Play indisponibles sur cette version.");
-      } else if (payment.success) {
-        setError("Achat reçu. Le rapport sera accessible après vérification du paiement.");
-      } else {
-        setError("Paiement non confirmé : " + (payment.error || "achat annulé ou en attente."));
-      }
+      setReport((current) => ({ ...current, purchase_status: 'unlocked' }));
+      setError('Paiement vérifié. Rapport complet disponible.');
     } catch (e) {
       setError("Action impossible pour le moment.");
     }
