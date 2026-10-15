@@ -9,6 +9,8 @@ Deno.serve(async (req) => {
     if (!scanId || !reportId || (typeof fileUri !== 'string')) {
       return Response.json({ error: 'invalid_request' }, { status: 400 });
     }
+    const scan = await base44.entities.Scan.get(scanId);
+    if (!scan || scan.created_by_id !== user.id) return Response.json({ error: 'scan_not_owned' }, { status: 403 });
     const report = await base44.entities.Report.get(reportId);
     if (!report || report.scan_id !== scanId || report.created_by_id !== user.id) {
       return Response.json({ error: 'report_not_owned' }, { status: 403 });
