@@ -29,7 +29,7 @@ export default function Home() {
         </div>
 
         <div className="animate-fade-in-up">
-          <p className="text-primary/80 text-xs tracking-[0.3em] uppercase mb-4">Chiromancie IA</p>
+          <p className="text-primary/80 text-xs tracking-[0.3em] uppercase mb-4">ChiromancIA</p>
           <h1 className="font-display text-4xl sm:text-5xl leading-tight text-foreground max-w-xs">
             Et si vos mains avaient une histoire à raconter ?
           </h1>
