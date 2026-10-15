@@ -154,6 +154,16 @@ export default async function(req) {
       mode = body.message && body.message.trim() ? 'chat' : (history.length === 0 ? 'reading' : 'chat');
     }
 
+    // Quota appliqué côté serveur pour tous les comptes, administrateurs compris.
+    // L'ancien indicateur chat_subscribed est ignoré tant que le paiement
+    // n'est pas vérifié par une intégration de facturation fiable.
+    if (mode === 'chat') {
+      const used = await base44.entities.ChatMessage.count({
+        role: 'user', created_by_id: user.id, kind: { $in: ['chat', 'revision'] },
+      });
+      if (used >= 3) return Response.json({ error: 'Trois questions gratuites utilisées. Abonnement requis.' }, { status: 402 });
+    }
+
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'system', content: "Analyse directement la photographie originale, sans description intermédiaire. Observe chaque main indépendamment. Appuie chaque interprétation symbolique sur une caractéristique visible, précise et localisable sur CETTE photo. Ne compte pas les bracelets du poignet si tous les plis ne sont pas clairement visibles ; ne déduis aucun fait biographique (enfance, famille, ruptures) de la continuité ou de l’absence de lignes. Évite les portraits psychologiques passe-partout, les prédictions affirmatives et les événements inventés. Si les plis sont trop peu visibles, signale la limite et demande une meilleure photo. Les lignes dorées de Palm Line Reader sont un effet visuel indépendant, jamais une source d'informations." }];
 
     // For the full report, preserve the free reading as reference without replaying all chats.
