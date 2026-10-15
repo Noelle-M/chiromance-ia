@@ -240,16 +240,16 @@ export default async function(req) {
     let readingId = existing?.id;
     if (mode === 'reading') {
       if (existing) {
-        await base44.entities.Reading.update(existing.id, { free_content: reply });
+        await base44.asServiceRole.entities.Reading.update(existing.id, { free_content: reply });
       } else {
-        const created = await base44.entities.Reading.create({ scan_id: scanId, free_content: reply, full_content: '', summary: '', version: '1' });
+        const created = await base44.asServiceRole.entities.Reading.create({ scan_id: scanId, free_content: reply, full_content: '', summary: '', version: '1' });
         readingId = created.id;
       }
     } else if (mode === 'deep') {
       if (existing) {
-        await base44.entities.Reading.update(existing.id, { full_content: reply });
+        await base44.asServiceRole.entities.Reading.update(existing.id, { full_content: reply });
       } else {
-        const created = await base44.entities.Reading.create({ scan_id: scanId, free_content: '', full_content: reply, summary: '', version: '1' });
+        const created = await base44.asServiceRole.entities.Reading.create({ scan_id: scanId, free_content: '', full_content: reply, summary: '', version: '1' });
         readingId = created.id;
       }
     }
