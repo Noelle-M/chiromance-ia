@@ -1,16 +1,23 @@
 import React, { useState } from "react";
 import { usePalmLineOverlay } from "@/lib/usePalmLineOverlay";
+import { useHandCutout } from "@/lib/useHandCutout";
 
 // Only the specialized ONNX model draws lines. No legacy GPT coordinates,
 // SVG polylines, labels or fallback to the previous drawing engine.
 export default function PalmCanvas({ photoUrl }) {
   const [showTraces, setShowTraces] = useState(true);
   const { url: coloredOverlay, loading, error } = usePalmLineOverlay(photoUrl);
+  const { url: cutoutUrl } = useHandCutout(photoUrl);
 
   return (
     <div className="relative w-full max-w-md mx-auto rounded-2xl overflow-hidden border border-border/60 bg-black/40">
       {photoUrl ? (
-        <img src={photoUrl} alt="Paume de la main" className="w-full block" />
+        <div className="relative">
+          <img src={photoUrl} alt="Paume de la main" className="w-full block" />
+          {cutoutUrl && <div className="absolute inset-0" style={{ backgroundImage: 'url("/Velours%20bleu%20nuit%20aux%20plis%20soyeux.png")', backgroundSize: "cover", backgroundPosition: "center" }}>
+            <img src={cutoutUrl} alt="Main détourée sur velours bleu nuit" className="w-full h-full object-fill" />
+          </div>}
+        </div>
       ) : (
         <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-sm">Photo indisponible</div>
       )}
