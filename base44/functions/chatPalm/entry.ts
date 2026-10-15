@@ -78,9 +78,10 @@ Développe les domaines qui trouvent des indices visibles : vie affective, pens�
 
 Rédige une consultation vivante, détaillée et agréable à lire, avec de vrais paragraphes développés et des sous-titres utiles. Approfondis séparément les lignes de vie, de tête et de cœur, puis les signes secondaires et les monts réellement discernables. Consacre aussi une analyse spécifique aux relations entre les lignes : départs communs, croisements, rapprochements et variations visibles. Explique les nuances et les différentes interprétations possibles plutôt que de répéter des généralités. La version payante doit apporter plusieurs pages de matière nouvelle, uniquement si la photographie permet ces observations. La valeur ajoutée doit être réelle par rapport à la version gratuite : approfondis surtout les relations entre plusieurs signes visibles et les nuances de leurs interprétations. Chaque section doit apporter des détails supplémentaires concrets plutôt que reformuler les mêmes observations. N'ajoute aucune section artificielle pour remplir, aucun résumé qui répète tout le texte, aucune question commerciale finale. Si la photo ne permet pas une analyse plus détaillée, reconnais-le explicitement au lieu d'inventer.
 
-FORMAT STRICT POUR LE LIVRET PREMIUM : respecte exactement les dix titres suivants, dans cet ordre, chacun seul sur sa ligne, précédé de ## :
+FORMAT STRICT POUR LE LIVRET PREMIUM : respecte exactement les onze titres suivants, dans cet ordre, chacun seul sur sa ligne, précédé de ## :
 ## Votre ligne de vie
 ## Votre ligne du destin
+## Les bracelets de votre poignet
 ## Les signes particuliers
 ## Les monts de votre main
 ## Les empreintes du passé
@@ -95,6 +96,7 @@ OBJECTIF ÉDITORIAL : ce document est vendu 4,99 € et doit donner l'impression
 DÉVELOPPEMENT ATTENDU :
 - Ligne de vie : emplacement précis, départ, trajectoire, courbure, profondeur, ramifications si visibles, rapports avec la ligne de tête, lectures traditionnelles alternatives et limites.
 - Destin : recherche prudente du tracé, continuité ou discrétion, liens éventuels avec les autres lignes ; l'absence d'un tracé net ne permet aucune déduction certaine sur le métier ou la biographie.
+- Bracelets du poignet (rascettes) : examiner les plis transversaux visibles à la jonction de la paume et du poignet, leur nombre discernable, leur netteté, continuité et éventuelles interruptions ; expliquer leurs significations symboliques traditionnelles sans leur attribuer de durée de vie, d'état de santé ou de fertilité. Si le poignet est coupé ou flou, le dire clairement.
 - Signes particuliers : identifier et situer les signes réellement discernables, expliquer comment leur forme, leur direction et leur proximité changent leur interprétation.
 - Monts : commenter séparément les reliefs réellement visibles et expliquer leurs symboles sans prétendre mesurer des qualités psychologiques.
 - Passé : raconter les interprétations symboliques des portions et relations observées, avec plusieurs paragraphes narratifs, en expliquant les nuances sans inventer des événements vécus.
