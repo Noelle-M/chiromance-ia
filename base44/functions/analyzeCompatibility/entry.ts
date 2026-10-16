@@ -60,12 +60,11 @@ export default async function(req) {
       o.hand === 'right' &&
       !o.uncertain &&
       Number(o.confidence) >= 0.55 &&
-      Array.isArray(o.coordinates) && o.coordinates.length >= 2 &&
       typeof o.characteristics === 'string' && o.characteristics.trim().length >= 12
     );
     const observationsA = reliable(obsAPage.items);
     const observationsB = reliable(obsBPage.items);
-    if (observationsA.length < 2 || observationsB.length < 2) {
+    if (observationsA.length < 1 || observationsB.length < 1) {
       return Response.json({
         error: 'observations_insuffisantes',
         message: 'Les lignes des deux mains ne sont pas assez visibles pour une comparaison. Reprenez les photos avec la paume ouverte et une lumière uniforme.'
