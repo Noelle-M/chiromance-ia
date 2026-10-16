@@ -44,8 +44,9 @@ export default async function(req) {
     if (!compat || ![compat.participant_a_id, compat.participant_b_id].includes(user.id)) return Response.json({ error: 'Accès refusé' }, { status: 403 });
     if (compat.status === 'completed') return Response.json({ ok: true });
     if (compat.status !== 'accepted' || !compat.consent_a || !compat.consent_b || !compat.participant_b_id || compat.participant_a_id === compat.participant_b_id) return Response.json({ error: 'Invitation non acceptée par deux personnes' }, { status: 409 });
-    const scanA = await base44.asServiceRole.entities.Scan.get(compat.scan_a_id);
-    const scanB = await base44.asServiceRole.entities.Scan.get(compat.scan_b_id);
+    if (!compat.scan_a_id || !compat.scan_b_id) return Response.json({ error: 'Les deux mains ne sont pas encore réunies.' }, { status: 422 });
+    const scanA = await base44.asServiceRole.entities.Scan.get(compat.scan_a_id).catch(() => null);
+    const scanB = await base44.asServiceRole.entities.Scan.get(compat.scan_b_id).catch(() => null);
     if (!scanA || !scanB || scanA.created_by_id !== compat.participant_a_id || scanB.created_by_id !== compat.participant_b_id || scanA.scan_type !== 'compatibility' || scanB.scan_type !== 'compatibility' || scanA.status !== 'analyzed' || scanB.status !== 'analyzed') return Response.json({ error: 'Scans invalides' }, { status: 403 });
 
     if (!compat.scan_a_id || !compat.scan_b_id) {
@@ -53,7 +54,7 @@ export default async function(req) {
     }
 
     // Compare the original photos directly. Stored annotation data is optional.
-    const apiKey = secrets.get('OPENAI_API_KEY');
+    const apiKey = await secrets.get('OPENAI_API_KEY');
     if (!apiKey) return Response.json({ error: 'service_unavailable', message: 'Le service de lecture est temporairement indisponible.' }, { status: 503 });
     const photos = await Promise.all([scanA, scanB].map(async (scan) => {
       if (!scan.right_hand_photo) return null;
