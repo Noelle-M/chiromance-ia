@@ -16,6 +16,7 @@ export default function Compatibility() {
   const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [readyNotice, setReadyNotice] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -28,7 +29,7 @@ export default function Compatibility() {
         const pending = (cPage.data?.entries || []).find((c) => c.status === 'pending' && c.invitation_code);
         const completed = (cPage.data?.entries || []).find((c) => c.status === 'completed' && c.result_content);
         if (pending) { setCompat(pending); setView('waiting'); }
-        else if (completed) { setCompat(completed); setView('result'); }
+        else if (completed) { setCompat(completed); setReadyNotice(true); setView('result'); }
       }
     } catch (e) {}
     setLoading(false);
@@ -54,6 +55,7 @@ export default function Compatibility() {
         if (!fresh) return;
         if (fresh.status === "completed" && fresh.result_content) {
           setCompat(fresh);
+          setReadyNotice(true);
           setView("result");
         } else if (fresh.status === "cancelled") {
           setView("home");
@@ -214,6 +216,7 @@ export default function Compatibility() {
 
       {view === 'result' && compat && (
         <div className="space-y-4">
+          {readyNotice && <div role="status" className="glass-card p-4 text-center"><p className="text-primary font-display text-lg">Votre analyse de compatibilité est prête !</p><p className="text-sm mt-2">Votre invité a accepté et la lecture de vos deux mains est disponible.</p><button onClick={() => setReadyNotice(false)} className="text-primary text-xs mt-3">Masquer</button></div>}
           <div className="gold-divider" />
           <h2 className="font-display text-2xl text-primary text-center">Votre lecture de compatibilité</h2>
           <ReadingMarkdown>{compat.result_content || "Résultat en cours de finalisation."}</ReadingMarkdown>
