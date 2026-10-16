@@ -7,7 +7,7 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const a = await base44.asServiceRole.entities.Compatibility.filter({ participant_a_id: user.id }, { limit: 50 });
     const b = await base44.asServiceRole.entities.Compatibility.filter({ participant_b_id: user.id }, { limit: 50 });
-    const unique = new Map([...(a.items || []), ...(b.items || [])].map(c => [c.id, c]));
+    const unique = new Map([...(a.items || []), ...(b.items || [])].filter(c => !(c.participant_a_id === user.id ? c.hidden_by_a : c.hidden_by_b)).map(c => [c.id, c]));
     const entries = [...unique.values()].sort((x, y) => new Date(y.created_date || 0) - new Date(x.created_date || 0)).map(c => ({ id: c.id, status: c.status, created_date: c.created_date, is_initiator: c.participant_a_id === user.id, scan_a_id: c.participant_a_id === user.id ? c.scan_a_id : undefined, scan_b_id: c.participant_b_id === user.id ? c.scan_b_id : undefined, invitation_code: c.participant_a_id === user.id ? c.invitation_code : undefined, result_content: c.status === 'completed' ? c.result_content : '' }));
     const pending = entries.filter(c => c.status === 'pending');
     for (const entry of pending) {
