@@ -89,6 +89,7 @@ export default function Compatibility() {
     acceptingRef.current = true;
     setBusy(true);
     setError("");
+    let acceptedCompatibility = null;
     try {
       const scanFromCapture = new URLSearchParams(window.location.search).get('scan');
       const myScans = scanFromCapture ? { items: [{ id: scanFromCapture }] } : { items: [] };
@@ -96,6 +97,7 @@ export default function Compatibility() {
       const accepted = await base44.functions.invoke('acceptCompatibilityInvite', { code: code.trim(), scanId: myScans.items[0].id });
       const c = accepted.data?.compatibility;
       if (!c) throw new Error('invitation_invalid');
+      acceptedCompatibility = c;
       // Generate the compatibility reading server-side (service role LLM).
       const analysis = await base44.functions.invoke('analyzeCompatibility', { compatibility_id: c.id });
       if (analysis.data?.error) throw new Error(analysis.data.message || analysis.data.error);
@@ -103,7 +105,10 @@ export default function Compatibility() {
       setCompat(done.data.compatibility);
       setView(done.data.compatibility.status === 'completed' ? 'result' : 'waiting');
       sessionStorage.removeItem('chiromancia_compat_invite');
-    } catch (e) { setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "Impossible de terminer l'analyse."); }
+    } catch (e) {
+      setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "Impossible de terminer l'analyse.");
+      if (acceptedCompatibility) { setCompat(acceptedCompatibility); setView('waiting'); sessionStorage.removeItem('chiromancia_compat_invite'); }
+    }
     setBusy(false);
     acceptingRef.current = false;
   };
