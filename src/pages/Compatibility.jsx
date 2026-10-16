@@ -31,7 +31,7 @@ export default function Compatibility() {
         const completed = (cPage.data?.entries || []).find((c) => c.status === 'completed' && c.result_content);
         if (pending) { setCompat(pending); setView('waiting'); }
         else if (accepted) { setCompat(accepted); setView('waiting'); }
-        else if (completed) { setCompat(completed); setReadyNotice(true); setView('result'); }
+        else if (completed) { setCompat(completed); setReadyNotice(Boolean(completed.is_initiator)); setView('result'); }
       }
     } catch (e) {}
     setLoading(false);
