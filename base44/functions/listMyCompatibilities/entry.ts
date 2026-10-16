@@ -9,11 +9,12 @@ export default async function(req) {
     const b = await base44.asServiceRole.entities.Compatibility.filter({ participant_b_id: user.id }, { limit: 50 });
     const unique = new Map([...(a.items || []), ...(b.items || [])].filter(c => !(c.participant_a_id === user.id ? c.hidden_by_a : c.hidden_by_b)).map(c => [c.id, c]));
     const entries = [...unique.values()].sort((x, y) => new Date(y.created_date || 0) - new Date(x.created_date || 0)).map(c => ({ id: c.id, status: c.status, created_date: c.created_date, is_initiator: c.participant_a_id === user.id, scan_a_id: c.participant_a_id === user.id ? c.scan_a_id : undefined, scan_b_id: c.participant_b_id === user.id ? c.scan_b_id : undefined, invitation_code: c.participant_a_id === user.id ? c.invitation_code : undefined, result_content: c.status === 'completed' ? c.result_content : '' }));
-    const pending = entries.filter(c => c.status === 'pending');
+    const pending = entries.filter(c => c.status === 'pending' || c.status === 'accepted');
     for (const entry of pending) {
       const original = unique.get(entry.id);
       const scan = original?.scan_a_id ? await base44.asServiceRole.entities.Scan.get(original.scan_a_id).catch(() => null) : null;
-      if (!scan || scan.created_by_id !== original.participant_a_id || scan.status !== 'analyzed') {
+      const scanB = original?.scan_b_id ? await base44.asServiceRole.entities.Scan.get(original.scan_b_id).catch(() => null) : null;
+      if (!scan || scan.created_by_id !== original.participant_a_id || scan.status !== 'analyzed' || (entry.status === 'accepted' && (!scanB || scanB.created_by_id !== original.participant_b_id || scanB.status !== 'analyzed'))) {
         await base44.asServiceRole.entities.Compatibility.update(entry.id, { status: 'cancelled' });
         entry.status = 'cancelled';
       }
