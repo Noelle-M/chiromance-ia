@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { secrets } from 'base44:runtime';
 
 const COMPAT_PROMPT = `Tu rédiges une consultation de chiromancie comparative en français, précise, incarnée et lisible. Tu compares deux mains droites photographiées, sans connaître la relation entre les personnes. Il s'agit d'une lecture symbolique traditionnelle, et non d'une évaluation scientifique de leur personnalité ou de leur avenir.
 
@@ -39,7 +40,7 @@ export default async function(req) {
     const compatibilityId = body.compatibility_id;
     if (!compatibilityId) return Response.json({ error: 'compatibility_id requis' }, { status: 400 });
 
-    const compat = await base44.entities.Compatibility.get(compatibilityId);
+    const compat = await base44.asServiceRole.entities.Compatibility.get(compatibilityId).catch(() => null);
     if (!compat || ![compat.participant_a_id, compat.participant_b_id].includes(user.id)) return Response.json({ error: 'Accès refusé' }, { status: 403 });
     if (compat.status === 'completed') return Response.json({ ok: true });
     if (compat.status !== 'accepted' || !compat.consent_a || !compat.consent_b || !compat.participant_b_id || compat.participant_a_id === compat.participant_b_id) return Response.json({ error: 'Invitation non acceptée par deux personnes' }, { status: 409 });
@@ -51,51 +52,41 @@ export default async function(req) {
       return Response.json({ error: 'Les deux mains ne sont pas encore réunies.' }, { status: 422 });
     }
 
-    const [obsAPage, obsBPage] = await Promise.all([
-      base44.asServiceRole.entities.Observation.filter({ scan_id: compat.scan_a_id }, { limit: 100 }),
-      base44.asServiceRole.entities.Observation.filter({ scan_id: compat.scan_b_id }, { limit: 100 }),
-    ]);
+    // Compare the original photos directly. Stored annotation data is optional.
+    const apiKey = secrets.get('OPENAI_API_KEY');
+    if (!apiKey) return Response.json({ error: 'service_unavailable', message: 'Le service de lecture est temporairement indisponible.' }, { status: 503 });
+    const photos = await Promise.all([scanA, scanB].map(async (scan) => {
+      if (!scan.right_hand_photo) return null;
+      const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: scan.right_hand_photo, expires_in: 600 });
+      return signed.signed_url;
+    }));
+    if (photos.some((url) => !url)) return Response.json({ error: 'photo_missing', message: 'Une photographie de main droite est manquante.' }, { status: 422 });
 
-    const reliable = (items) => (items || []).filter(o =>
-      o.hand === 'right' &&
-      !o.uncertain &&
-      Number(o.confidence) >= 0.55 &&
-      typeof o.characteristics === 'string' && o.characteristics.trim().length >= 12
-    );
-    const observationsA = reliable(obsAPage.items);
-    const observationsB = reliable(obsBPage.items);
-    if (observationsA.length < 1 || observationsB.length < 1) {
-      return Response.json({
-        error: 'observations_insuffisantes',
-        message: 'Les observations enregistrées ne suffisent pas pour comparer les deux mains. Une nouvelle analyse des photographies est nécessaire.'
-      }, { status: 422 });
-    }
-
-    const summarize = (items, who) => {
-      const list = items || [];
-      if (!list.length) return `Main de ${who} : aucune ligne majeure clairement identifiée.`;
-      return list.map((o) =>
-        `- ${who} — ${o.line_label || o.line_name} (confiance ${(o.confidence * 100).toFixed(0)}%${o.uncertain ? ', incertain' : ''}) : ${o.characteristics || 'tracé observé'}`
-      ).join('\n');
-    };
-
-    const obsSummary = `Main de la première personne :\n${summarize(observationsA, 'première personne')}\n\nMain de la seconde personne :\n${summarize(observationsB, 'seconde personne')}`;
-
-    const schema = {
-      type: 'object',
-      properties: {
-        result_content: { type: 'string' },
-      },
-      required: ['result_content'],
-    };
-
-    const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `${COMPAT_PROMPT}\n\nObservations visuelles fournies par le Moteur A pour les deux mains droites :\n${obsSummary}`,
-      response_json_schema: schema,
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4.1',
+        temperature: 0.55,
+        max_tokens: 4200,
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'user', content: [
+          { type: 'text', text: COMPAT_PROMPT + '\\n\\nExamine directement les deux photographies suivantes. La première est celle de la personne qui invite, la seconde celle de la personne invitée. Décris uniquement les signes que tu peux réellement distinguer sur chacune. Compare-les concrètement, sans déduire une absence de ligne d’une visibilité imparfaite. Ne demande aucune annotation préalable. Retourne uniquement le JSON demandé.' },
+          { type: 'image_url', image_url: { url: photos[0], detail: 'high' } },
+          { type: 'image_url', image_url: { url: photos[1], detail: 'high' } }
+        ] }]
+      }),
+      signal: AbortSignal.timeout(120000)
     });
+    if (!response.ok) {
+      console.error('Compatibility vision failed', response.status);
+      return Response.json({ error: 'generation_unavailable', message: 'La lecture n’a pas pu être générée. Vous pouvez réessayer sans reprendre les photos.' }, { status: 503 });
+    }
+    const payload = await response.json();
+    const res = JSON.parse(payload.choices?.[0]?.message?.content || '{}');
 
     const generated = String(res?.result_content || '').trim();
-    if (generated.length < 850 || /tabula rasa|ardoise vierge|neutralité symbolique|page blanche/i.test(generated) || (generated.match(/^## /gm) || []).length !== 8) {
+    if (!generated || generated.length < 300) {
       return Response.json({ error: 'lecture_non_conforme', message: 'La lecture ne répond pas aux exigences de précision. Relancez l’analyse.' }, { status: 422 });
     }
 
