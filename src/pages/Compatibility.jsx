@@ -18,6 +18,7 @@ export default function Compatibility() {
   const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [analysisFailed, setAnalysisFailed] = useState(false);
   const [readyNotice, setReadyNotice] = useState(false);
   const [openSection, setOpenSection] = useState(null);
 
@@ -125,7 +126,7 @@ export default function Compatibility() {
       sessionStorage.removeItem('chiromancia_compat_invite');
     } catch (e) {
       setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "Impossible de terminer l'analyse.");
-      if (acceptedCompatibility) {setCompat(acceptedCompatibility);setView('waiting');sessionStorage.removeItem('chiromancia_compat_invite');}
+      if (acceptedCompatibility) {setAnalysisFailed(true);setCompat(acceptedCompatibility);setView('waiting');sessionStorage.removeItem('chiromancia_compat_invite');}
     }
     setBusy(false);
     acceptingRef.current = false;
@@ -231,8 +232,8 @@ export default function Compatibility() {
 
       {view === 'waiting' && compat &&
       <div className="space-y-4 text-center">
-          <Loader2 className="animate-spin text-primary mx-auto" size={28} />
-          <h2 className="font-display text-xl">{compat.status === 'accepted' ? 'Invitation acceptée — analyse en cours' : 'En attente de votre invité'}</h2>
+          {!analysisFailed && <Loader2 className="animate-spin text-primary mx-auto" size={28} />}
+          <h2 className="font-display text-xl">{compat.status === 'accepted' ? (analysisFailed ? 'Analyse interrompue' : 'Invitation acceptée') : 'En attente de votre invité'}</h2>
           <p className="text-sm text-muted-foreground">{compat.status === 'accepted' ? 'Votre invité a accepté. La lecture commune sera disponible ici.' : 'Partagez ce lien à une seule personne.'}</p>
           {!shareUrl && <p className="text-xs text-muted-foreground">Le lien public doit être configuré pour le partage depuis Android. Vous pouvez transmettre le code ci-dessous.</p>}
           <div className="glass-card p-3 flex items-center gap-2">
