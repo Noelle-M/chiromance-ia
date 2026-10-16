@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
     if (!scan || scan.created_by_id !== user.id) return Response.json({ error: 'scan_not_owned' }, { status: 403 });
     const subscriptions = await base44.asServiceRole.entities.PlayEntitlement.filter({ user_id: user.id, product_id: 'chiromancia_questions_illimitees', status: 'active' });
     const reports = await base44.asServiceRole.entities.PlayEntitlement.filter({ user_id: user.id, product_id: 'chiromancia_rapport_complet', scan_id: scanId, status: 'active' });
-    return Response.json({ questionsSubscribed: (subscriptions.items || []).some((item) => item.expires_at && Date.parse(item.expires_at) > Date.now()), reportEntitled: (reports.items || []).length > 0 });
+    return Response.json({ questionsSubscribed: user.role === 'admin' || (subscriptions.items || []).some((item) => item.expires_at && Date.parse(item.expires_at) > Date.now()), reportEntitled: (reports.items || []).length > 0 });
   } catch (error) {
     console.error('getMyPlayRights failed', error);
     return Response.json({ error: 'rights_unavailable' }, { status: 500 });
