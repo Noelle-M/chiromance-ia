@@ -29,6 +29,7 @@
       "type": "string",
       "description": "private file_uri of the left palm photo, optional"
     },
+    "hidden_from_grimoire": { "type": "boolean", "default": false },
     "quality_notes": {
       "type": "string"
     },
