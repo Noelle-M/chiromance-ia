@@ -44,16 +44,14 @@ export default async function(req) {
       const valid = (parsed.lines || []).filter(o =>
         ['life','heart','head','fate','sun','mercury','secondary'].includes(o.line_name) &&
         typeof o.characteristics === 'string' && o.characteristics.trim().length >= 12 &&
-        Number(o.confidence) >= 0.55 && !o.uncertain &&
-        Array.isArray(o.coordinates) && o.coordinates.length >= 2 &&
-        o.coordinates.every(p => Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)
+        Number(o.confidence) >= 0.4 && !o.uncertain
       );
-      if (!parsed.quality_ok || valid.length < 2) {
+      if (parsed.quality_ok === false) {
         const reason = parsed.quality_notes || 'Lignes insuffisamment visibles. Reprenez la photo avec une lumière uniforme.';
         await base44.entities.Scan.update(scanId, { status: 'failed', quality_notes: reason });
         return Response.json({ error: reason }, { status: 422 });
       }
-      observations.push(...valid.map(o => ({ scan_id: scanId, hand, line_name: o.line_name, line_label: o.line_label || o.line_name, characteristics: o.characteristics, confidence: o.confidence, uncertain: false, coordinates: o.coordinates })));
+      observations.push(...valid.map(o => ({ scan_id: scanId, hand, line_name: o.line_name, line_label: o.line_label || o.line_name, characteristics: o.characteristics, confidence: o.confidence, uncertain: false, coordinates: Array.isArray(o.coordinates) ? o.coordinates : [] })));
     }
     for (const observation of observations) await base44.asServiceRole.entities.Observation.create(observation);
     await base44.entities.Scan.update(scanId, { status: 'analyzed', quality_notes: '' });
