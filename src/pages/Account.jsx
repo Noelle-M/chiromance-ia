@@ -63,15 +63,13 @@ export default function Account() {
   const confirmDeleteAccount = async () => {
     setDeletingAccount(true);
     try {
-      for (const s of scans) {
-        await base44.entities.Observation.deleteMany({ scan_id: s.id }).catch(() => {});
-        await base44.entities.Scan.delete(s.id).catch(() => {});
-      }
-      await base44.auth.logout();
+      const response = await base44.functions.invoke('deleteMyAccount', { confirm: 'SUPPRIMER' });
+      if (response.data?.ok !== true) throw new Error('account_deletion_failed');
+      await base44.auth.logout().catch(() => {});
       window.location.href = '/login';
     } catch (e) {
       setAccountDeleteOpen(false);
-      setError("Suppression impossible pour le moment.");
+      setError("Suppression non confirmée. Certaines données peuvent déjà avoir été supprimées. Contactez le support avant de réessayer.");
     }
     setDeletingAccount(false);
   };
@@ -156,7 +154,7 @@ export default function Account() {
         open={accountDeleteOpen}
         onOpenChange={(o) => { if (!deletingAccount) setAccountDeleteOpen(o); }}
         title="Supprimer votre compte ?"
-        description="Votre compte et toutes vos données (scans, lectures, rapports) seront supprimés définitivement. Cette action est irréversible."
+        description="Votre compte, vos scans, lectures et compatibilités seront supprimés définitivement. Les abonnements Google Play doivent être résiliés séparément depuis Google Play."
         confirmLabel="Tout supprimer"
         destructive
         loading={deletingAccount}
