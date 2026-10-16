@@ -43,6 +43,7 @@ export default function MyHands() {
         if (!response.data?.ok) throw new Error('hide_failed');
         setCompatibilities((prev) => prev.filter((c) => c.id !== scanId));
         setToDelete(null);
+        setDeleting(false);
         return;
       }
       const obsPage = await base44.entities.Observation.filter({ scan_id: scanId }, { limit: 100, fields: ['id'] });
