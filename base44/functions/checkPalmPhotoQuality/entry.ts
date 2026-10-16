@@ -8,7 +8,7 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Connexion requise' }, { status: 401 });
     const { file_uri: uri, hand } = await req.json().catch(() => ({}));
     if (typeof uri !== 'string' || !uri || !['right', 'left'].includes(hand)) return Response.json({ error: 'Photographie invalide' }, { status: 400 });
-    const key = secrets.get('OPENAI_API_KEY');
+    const key = await secrets.get('OPENAI_API_KEY');
     if (!key) return Response.json({ error: 'Contrôle photo indisponible' }, { status: 503 });
     const signed = await api.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 300 });
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
