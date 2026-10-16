@@ -31,6 +31,12 @@ export default function Scanner() {
     try {
       const file = new File([blob], `palm-${Date.now()}.jpg`, { type: 'image/jpeg' });
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
+      const check = await base44.functions.invoke('checkPalmPhotoQuality', { file_uri, hand: parcours.hands[step] });
+      if (check.data?.acceptable !== true) {
+        setUploading(false);
+        setError(check.data?.reason || 'Photo non exploitable. Reprenez-la.');
+        return;
+      }
       urisRef.current[parcours.hands[step]] = file_uri;
       setUploading(false);
 
@@ -112,7 +118,7 @@ export default function Scanner() {
 
       {uploading && (
         <div className="flex items-center justify-center gap-2 text-sm text-primary mb-4">
-          <Loader2 className="animate-spin" size={16} /> Enregistrement de la photo…
+          <Loader2 className="animate-spin" size={16} /> Vérification de la qualité de la photo…
         </div>
       )}
       {error && (
