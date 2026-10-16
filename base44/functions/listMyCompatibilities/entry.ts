@@ -18,6 +18,20 @@ export default async function(req) {
         entry.status = 'cancelled';
       }
     }
+    for (const entry of entries) {
+      if (entry.status === 'cancelled') continue;
+      const original = unique.get(entry.id);
+      for (const [key, scanId] of [['photo_a_url', original.scan_a_id], ['photo_b_url', original.scan_b_id]]) {
+        if (!scanId) continue;
+        try {
+          const scan = await base44.asServiceRole.entities.Scan.get(scanId);
+          if (scan?.right_hand_photo) {
+            const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: scan.right_hand_photo, expires_in: 600 });
+            entry[key] = signed.signed_url;
+          }
+        } catch (error) { console.error('Compatibility thumbnail unavailable', entry.id, key); }
+      }
+    }
     return Response.json({ entries });
   } catch (error) {
     console.error(error);
