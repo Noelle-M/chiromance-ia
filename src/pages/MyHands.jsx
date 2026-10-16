@@ -60,7 +60,7 @@ export default function MyHands() {
   const pairedScanIds = new Set(compatibilities.flatMap((c) => [c.scan_a_id, c.scan_b_id].filter(Boolean)));
   const history = [
     ...compatibilities.map((c) => ({ kind: 'pair', id: c.id, date: c.created_date, data: c })),
-    ...scans.filter((s) => s.scan_type !== 'compatibility' || !pairedScanIds.has(s.id)).map((s) => ({ kind: 'scan', id: s.id, date: s.created_date, data: s })),
+    ...scans.filter((s) => s.scan_type !== 'compatibility').map((s) => ({ kind: 'scan', id: s.id, date: s.created_date, data: s })),
   ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   return (
