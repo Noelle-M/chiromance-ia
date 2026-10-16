@@ -95,9 +95,14 @@ export default async function(req) {
       response_json_schema: schema,
     });
 
+    const generated = String(res?.result_content || '').trim();
+    if (generated.length < 850 || /tabula rasa|ardoise vierge|neutralité symbolique|page blanche/i.test(generated) || (generated.match(/^## /gm) || []).length !== 8) {
+      return Response.json({ error: 'lecture_non_conforme', message: 'La lecture ne répond pas aux exigences de précision. Relancez l’analyse.' }, { status: 422 });
+    }
+
     await base44.asServiceRole.entities.Compatibility.update(compatibilityId, {
       status: 'completed',
-      result_content: res.result_content,
+      result_content: generated,
     });
 
     return Response.json({ ok: true });
