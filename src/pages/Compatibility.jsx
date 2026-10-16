@@ -144,13 +144,14 @@ export default function Compatibility() {
     finally { setBusy(false); }
   };
 
-  const shareUrl = compat?.invitation_code ? `${window.location.origin}/compatibilite?code=${compat.invitation_code}` : "";
+  const publicOrigin = import.meta.env.VITE_PUBLIC_APP_URL || (/^(https?:\/\/)(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.origin) ? '' : window.location.origin);
+  const shareUrl = compat?.invitation_code && publicOrigin ? `${publicOrigin.replace(/\/$/, '')}/compatibilite?code=${encodeURIComponent(compat.invitation_code)}` : "";
   const copy = async () => {
-    try { await navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    try { await navigator.clipboard.writeText(shareUrl || compat?.invitation_code || ''); setCopied(true); setTimeout(() => setCopied(false), 1500); }
     catch (e) { setError('Copie indisponible. Sélectionnez le lien pour le partager.'); }
   };
   const share = async () => {
-    if (!shareUrl) return;
+    if (!shareUrl) { await copy(); return; }
     if (navigator.share) {
       try { await navigator.share({ title: 'Invitation Chiromancia', text: 'Comparons nos mains droites sur Chiromancia', url: shareUrl }); return; }
       catch (e) { if (e.name === 'AbortError') return; }
@@ -210,11 +211,12 @@ export default function Compatibility() {
           <Loader2 className="animate-spin text-primary mx-auto" size={28} />
           <h2 className="font-display text-xl">{compat.status === 'accepted' ? 'Invitation acceptée — analyse en cours' : 'En attente de votre invité'}</h2>
           <p className="text-sm text-muted-foreground">{compat.status === 'accepted' ? 'Votre invité a accepté. La lecture commune sera disponible ici.' : 'Partagez ce lien à une seule personne.'}</p>
+          {!shareUrl && <p className="text-xs text-muted-foreground">Le lien public doit être configuré pour le partage depuis Android. Vous pouvez transmettre le code ci-dessous.</p>}
           <div className="glass-card p-3 flex items-center gap-2">
-            <span className="text-xs text-primary truncate flex-1 text-left">{shareUrl}</span>
+            <span className="text-xs text-primary truncate flex-1 text-left">{shareUrl || compat.invitation_code}</span>
             <button onClick={copy} className="text-primary">{copied ? <Check size={16} /> : <Copy size={16} />}</button>
           </div>
-          <button onClick={share} className="btn-gold w-full py-3 flex items-center justify-center gap-2"><Share2 size={16} /> Partager l’invitation</button>
+          <button onClick={share} className="btn-gold w-full py-3 flex items-center justify-center gap-2"><Share2 size={16} /> {shareUrl ? 'Partager l’invitation' : 'Copier le code d’invitation'}</button>
           <p className="text-[11px] text-muted-foreground">Code de secours : {compat.invitation_code}</p>
           {error && <p className="text-xs text-destructive">{error}</p>}
           {compat.status === 'pending' && <button onClick={cancelInvitation} disabled={busy} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
