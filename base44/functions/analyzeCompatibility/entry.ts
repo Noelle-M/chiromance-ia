@@ -23,7 +23,7 @@ Retourne un seul champ result_content en markdown, structuré ainsi :
 ## Les chemins qui peuvent se rejoindre
 ## Votre lecture de compatibilité
 
-Chaque section doit confronter les signes réellement observés sur les deux mains. Développe aussi bien les correspondances favorables que les différences, sans conclure automatiquement que les personnes sont compatibles ou incompatibles.
+Interdiction de présenter une ligne non détectée comme absente de la main. Interdiction des concepts inventés comme « main tabula rasa », « ardoise vierge », « neutralité symbolique ». Chaque affirmation doit citer un signe concret présent dans les observations. Si un domaine ne peut être interprété, indique sobrement cette limite au lieu de remplir avec des métaphores. Chaque section doit confronter les signes réellement observés sur les deux mains. Développe aussi bien les correspondances favorables que les différences, sans conclure automatiquement que les personnes sont compatibles ou incompatibles.
 
 Retourne un JSON conforme au schéma demandé.`;
 
