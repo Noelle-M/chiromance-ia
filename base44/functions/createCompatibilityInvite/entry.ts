@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-Deno.serve(async req => {
+export default async function(req) {
  try {
   const api=createClientFromRequest(req), user=await api.auth.me();
   if(!user) return Response.json({error:'unauthorized'},{status:401});
@@ -10,4 +10,4 @@ Deno.serve(async req => {
   const compat=await api.asServiceRole.entities.Compatibility.create({participant_a_id:user.id,scan_a_id:scanId,invitation_code:code,status:'pending',consent_a:true,consent_b:false});
   return Response.json({compatibility:compat});
  }catch(e){console.error(e);return Response.json({error:'invitation_failed'},{status:500});}
-});
+}
