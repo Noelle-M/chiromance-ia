@@ -145,13 +145,14 @@ export default function Compatibility() {
   const retryAnalysis = async () => {
     if (!compat || compat.status !== 'accepted') return;
     setBusy(true);
+    setAnalysisFailed(false);
     setError('');
     try {
       const response = await base44.functions.invoke('analyzeCompatibility', { compatibility_id: compat.id });
       if (response.data?.error) throw new Error(response.data.message || response.data.error);
       const state = await base44.functions.invoke('getCompatibilityState', { compatibilityId: compat.id });
       if (state.data?.compatibility?.status === 'completed') {setCompat(state.data.compatibility);setReadyNotice(true);setView('result');}
-    } catch (e) {setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "L'analyse n'a pas pu aboutir.");} finally
+    } catch (e) {setAnalysisFailed(true);setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "L'analyse n'a pas pu aboutir.");} finally
     {setBusy(false);}
   };
 
@@ -232,8 +233,8 @@ export default function Compatibility() {
 
       {view === 'waiting' && compat &&
       <div className="space-y-4 text-center">
-          {!analysisFailed && <Loader2 className="animate-spin text-primary mx-auto" size={28} />}
-          <h2 className="font-display text-xl">{compat.status === 'accepted' ? (analysisFailed ? 'Analyse interrompue' : 'Invitation acceptée') : 'En attente de votre invité'}</h2>
+          {busy && <Loader2 className="animate-spin text-primary mx-auto" size={28} />}
+          <h2 className="font-display text-xl">{compat.status === 'accepted' ? (analysisFailed ? 'Lecture à reprendre' : 'Invitation acceptée') : 'En attente de votre invité'}</h2>
           <p className="text-sm text-muted-foreground">{compat.status === 'accepted' ? 'Votre invité a accepté. La lecture commune sera disponible ici.' : 'Partagez ce lien à une seule personne.'}</p>
           {compat.status === "pending" && !shareUrl && <p className="text-xs text-muted-foreground">Le lien public doit être configuré pour le partage depuis Android. Vous pouvez transmettre le code ci-dessous.</p>}
           {compat.status === "pending" && compat.invitation_code && <div className="glass-card p-3 flex items-center gap-2">
@@ -246,7 +247,7 @@ export default function Compatibility() {
           {compat.status === 'pending' && <button onClick={cancelInvitation} disabled={busy} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
             <X size={16} /> Annuler cette invitation
           </button>}
-          {compat.status === 'accepted' && <button onClick={retryAnalysis} disabled={busy} className="btn-gold w-full py-3">{busy ? 'Analyse en cours…' : "Relancer l'analyse"}</button>}
+          {compat.status === 'accepted' && <button onClick={retryAnalysis} disabled={busy} className="btn-gold w-full py-3">{busy ? 'Lecture des deux mains en cours…' : "Générer notre compatibilité à partir des deux photos"}</button>}
           {compat.status === 'accepted' && <button onClick={() => {setView('home');setCompat(null);}} className="btn-ghost-gold w-full py-3">Retour</button>}
         </div>
       }
