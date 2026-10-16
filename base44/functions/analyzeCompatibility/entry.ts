@@ -67,7 +67,7 @@ export default async function(req) {
     if (observationsA.length < 1 || observationsB.length < 1) {
       return Response.json({
         error: 'observations_insuffisantes',
-        message: 'Les lignes des deux mains ne sont pas assez visibles pour une comparaison. Reprenez les photos avec la paume ouverte et une lumière uniforme.'
+        message: 'Les observations enregistrées ne suffisent pas pour comparer les deux mains. Une nouvelle analyse des photographies est nécessaire.'
       }, { status: 422 });
     }
 
