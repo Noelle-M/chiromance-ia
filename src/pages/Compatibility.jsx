@@ -12,6 +12,7 @@ export default function Compatibility() {
   const [compat, setCompat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const acceptingRef = React.useRef(false);
   const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
@@ -78,12 +79,14 @@ export default function Compatibility() {
   };
 
   const acceptWithCode = async () => {
+    if (acceptingRef.current) return;
+    acceptingRef.current = true;
     setBusy(true);
     setError("");
     try {
       const scanFromCapture = new URLSearchParams(window.location.search).get('scan');
       const myScans = scanFromCapture ? { items: [{ id: scanFromCapture }] } : { items: [] };
-      if (!myScans.items?.length) { navigate(`/scanner?compatInvite=${encodeURIComponent(code.trim())}`); return; }
+      if (!myScans.items?.length) { acceptingRef.current = false; setBusy(false); navigate(`/scanner?compatInvite=${encodeURIComponent(code.trim())}`); return; }
       const accepted = await base44.functions.invoke('acceptCompatibilityInvite', { code: code.trim(), scanId: myScans.items[0].id });
       const c = accepted.data?.compatibility;
       if (!c) throw new Error('invitation_invalid');
@@ -95,7 +98,13 @@ export default function Compatibility() {
       sessionStorage.removeItem('chiromancia_compat_invite');
     } catch (e) { setError("Impossible d'accepter l'invitation."); }
     setBusy(false);
+    acceptingRef.current = false;
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!loading && params.has('code') && params.has('scan') && view === 'accept' && !acceptingRef.current) acceptWithCode();
+  }, [loading, view]);
 
   const cancelInvitation = async () => {
     if (!compat) return;
