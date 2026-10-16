@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Heart, Loader2, Share2, Copy, Check, X, Link2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ReadingMarkdown from "@/components/ReadingMarkdown";
+import ReactMarkdown from "react-markdown";
+import { ChevronDown } from "lucide-react";
 
 export default function Compatibility() {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ export default function Compatibility() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [readyNotice, setReadyNotice] = useState(false);
+  const [openSection, setOpenSection] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -269,10 +272,40 @@ export default function Compatibility() {
           {readyNotice && <div role="status" className="glass-card p-4 text-center"><p className="text-primary font-display text-lg">Votre analyse de compatibilité est prête !</p><p className="text-sm mt-2">Votre invité a accepté et la lecture de vos deux mains est disponible.</p><button onClick={() => setReadyNotice(false)} className="text-primary text-xs mt-3">Masquer</button></div>}
           <div className="gold-divider" />
           <h2 className="font-display text-2xl text-primary text-center">Votre lecture de compatibilité</h2>
-          <ReadingMarkdown>{compat.result_content || "Résultat en cours de finalisation."}</ReadingMarkdown>
+          <CompatibilityAccordion content={compat.result_content || ""} openSection={openSection} onToggle={(index) => setOpenSection((previous) => previous === index ? null : index)} />
           <button onClick={() => setView('home')} className="btn-ghost-gold w-full py-3">Nouvelle compatibilité</button>
         </div>
       }
     </div>);
 
+}
+
+function CompatibilityAccordion({ content, openSection, onToggle }) {
+  const parts = String(content || '').replace(/\r\n?/g, '\n').split(/(?:^|\n)\s*#{1,3}\s+([^\n]+)\n/g);
+  const sections = [];
+  if (parts[0]?.trim()) sections.push({ title: 'Introduction', body: parts[0].trim() });
+  for (let i = 1; i < parts.length; i += 2) {
+    const title = (parts[i] || '').trim();
+    const body = (parts[i + 1] || '').trim();
+    if (title) sections.push({ title, body });
+  }
+  if (!sections.length && content) sections.push({ title: 'Votre analyse de compatibilité', body: content });
+  return (
+    <div className="space-y-3">
+      {sections.map((section, index) => (
+        <div key={index} className="glass-card overflow-hidden">
+          <button type="button" aria-expanded={openSection === index} onClick={() => onToggle(index)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-4 text-left text-primary font-display text-xl">
+            <span>{section.title}</span>
+            <ChevronDown size={19} className={`shrink-0 transition-transform duration-200 ${openSection === index ? 'rotate-180' : ''}`} />
+          </button>
+          {openSection === index && (
+            <div className="px-4 pb-5 prose-reading reading-markdown">
+              <ReactMarkdown>{section.body}</ReactMarkdown>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
