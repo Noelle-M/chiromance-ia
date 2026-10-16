@@ -103,7 +103,12 @@ export default function Compatibility() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (!loading && params.has('code') && params.has('scan') && view === 'accept' && !acceptingRef.current) acceptWithCode();
+    if (loading || view !== 'accept' || !params.has('code')) return;
+    if (params.has('scan')) {
+      if (!acceptingRef.current) acceptWithCode();
+    } else {
+      navigate('/scanner?compatInvite=' + encodeURIComponent(params.get('code')), { replace: true });
+    }
   }, [loading, view]);
 
   const cancelInvitation = async () => {
