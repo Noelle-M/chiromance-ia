@@ -187,7 +187,7 @@ export default async function(req) {
     // Quota appliqué côté serveur pour tous les comptes, administrateurs compris.
     // L'ancien indicateur chat_subscribed est ignoré tant que le paiement
     // n'est pas vérifié par une intégration de facturation fiable.
-    if (mode === 'chat') {
+    if (mode === 'chat' && user.role !== 'admin') {
       const used = await base44.entities.ChatMessage.count({
         role: 'user', created_by_id: user.id, kind: { $in: ['chat', 'revision'] },
       });
@@ -254,7 +254,7 @@ export default async function(req) {
     messages.push({ role: 'user', content: userContent });
 
     const maxTokens = mode === 'deep' ? 12500 : mode === 'reading' ? 2000 : 1200;
-    const apiKey = secrets.get('OPENAI_API_KEY');
+    const apiKey = await secrets.get('OPENAI_API_KEY');
     const oaRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
