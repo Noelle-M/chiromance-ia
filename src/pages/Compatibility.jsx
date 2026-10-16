@@ -25,13 +25,20 @@ export default function Compatibility() {
       setScans(page.items || []);
       const cPage = await base44.functions.invoke('listMyCompatibilities', {});
       const params = new URLSearchParams(window.location.search);
-      if (!params.has('code') && !params.has('scan')) {
+      if (!params.has('code')) {
+        const requestedScan = params.get('scan');
+        const related = requestedScan ? (cPage.data?.entries || []).find((c) => c.scan_a_id === requestedScan || c.scan_b_id === requestedScan) : null;
+        if (related && related.status === 'completed' && related.result_content) { setCompat(related); setReadyNotice(false); setView('result'); }
+        else if (related && ['pending', 'accepted'].includes(related.status)) { setCompat(related); setView('waiting'); }
+        else if (requestedScan) { setSelectedScan(requestedScan); setView('create'); }
+        else {
         const pending = (cPage.data?.entries || []).find((c) => c.status === 'pending' && c.invitation_code);
         const accepted = (cPage.data?.entries || []).find((c) => c.status === 'accepted');
         const completed = (cPage.data?.entries || []).find((c) => c.status === 'completed' && c.result_content);
         if (pending) { setCompat(pending); setView('waiting'); }
         else if (accepted) { setCompat(accepted); setView('waiting'); }
         else if (completed) { setCompat(completed); setReadyNotice(Boolean(completed.is_initiator)); setView('result'); }
+        }
       }
     } catch (e) {}
     setLoading(false);
