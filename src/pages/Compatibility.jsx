@@ -74,7 +74,7 @@ export default function Compatibility() {
         const state = await base44.functions.invoke('getCompatibilityState', { compatibilityId: compat.id });
         const fresh = state.data?.compatibility;
         if (!fresh) return;
-        if (fresh.status === "completed" && fresh.result_content) {
+        if (fresh.status === 'accepted' && compat.status !== 'accepted') {setCompat(fresh);} else if (fresh.status === "completed" && fresh.result_content) {
           setCompat(fresh);
           setReadyNotice(true);
           setView("result");
@@ -134,13 +134,13 @@ export default function Compatibility() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (loading || view !== 'accept' || !params.has('code')) return;
+    if (loading || busy || view !== 'accept' || !params.has('code')) return;
     if (params.has('scan')) {
       if (!acceptingRef.current) acceptWithCode();
     } else {
       navigate('/scanner?compatInvite=' + encodeURIComponent(params.get('code')), { replace: true });
     }
-  }, [loading, view]);
+  }, [loading, view, busy]);
 
   const retryAnalysis = async () => {
     if (!compat || compat.status !== 'accepted') return;
@@ -169,7 +169,7 @@ export default function Compatibility() {
     {setBusy(false);}
   };
 
-  const publicOrigin = import.meta.env.VITE_PUBLIC_APP_URL || (/^(https?:\/\/)(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.origin) ? '' : window.location.origin);
+  const publicOrigin = import.meta.env.VITE_PUBLIC_APP_URL || 'https://fair-palm-path-pro.base44.app';
   const shareUrl = compat?.invitation_code && publicOrigin ? `${publicOrigin.replace(/\/$/, '')}/compatibilite?code=${encodeURIComponent(compat.invitation_code)}` : "";
   const copy = async () => {
     try {await navigator.clipboard.writeText(shareUrl || compat?.invitation_code || '');setCopied(true);setTimeout(() => setCopied(false), 1500);}
