@@ -18,9 +18,10 @@ export default function Grimoire() {
       try {
         const scanPage = await base44.entities.Scan.filter(
           { status: "analyzed" },
-          { sort: "-created_date", limit: 50, fields: ["id", "scan_type", "right_hand_photo", "left_hand_photo", "created_date"] }
+          { sort: "-created_date", limit: 50, fields: ["id", "created_by_id", "scan_type", "right_hand_photo", "left_hand_photo", "created_date"] }
         );
-        const scans = scanPage.items || [];
+        const currentUser = await base44.auth.me();
+        const scans = (scanPage.items || []).filter(s => s.created_by_id === currentUser.id);
         if (!scans.length) { setLoading(false); return; }
 
         const [obsPage, readPage] = await Promise.all([
