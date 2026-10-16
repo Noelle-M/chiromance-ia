@@ -194,9 +194,9 @@ export default function Compatibility() {
           <button onClick={() => setView('accept')} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
             <Link2 size={16} /> J'ai un code d'invitation
           </button>
-          <p className="text-[11px] text-muted-foreground text-center mt-4 leading-relaxed hidden">
-            Gratuit. Cette lecture symbolique explore différentes formes de relations, sans prédire leur réussite.
-          </p>
+          
+
+        
         </div>
       }
 
