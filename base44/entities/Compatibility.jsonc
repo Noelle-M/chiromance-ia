@@ -42,6 +42,16 @@
     "result_content": {
       "type": "string",
       "description": "shared compatibility reading markdown"
+    },
+    "hidden_by_a": {
+      "type": "boolean",
+      "default": false,
+      "description": "Hide this compatibility from participant A only"
+    },
+    "hidden_by_b": {
+      "type": "boolean",
+      "default": false,
+      "description": "Hide this compatibility from participant B only"
     }
   },
   "required": [
