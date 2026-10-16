@@ -30,13 +30,21 @@ export default function MyHands() {
   const askDelete = (e, scanId) => {
     e.preventDefault();
     e.stopPropagation();
-    setToDelete(scanId);
+    setToDelete({ kind: 'scan', id: scanId });
   };
 
   const confirmDelete = async () => {
-    const scanId = toDelete;
+    if (!toDelete) return;
+    const { id: scanId, kind } = toDelete;
     setDeleting(true);
     try {
+      if (kind === 'pair') {
+        const response = await base44.functions.invoke('hideMyCompatibility', { compatibilityId: scanId });
+        if (!response.data?.ok) throw new Error('hide_failed');
+        setCompatibilities((prev) => prev.filter((c) => c.id !== scanId));
+        setToDelete(null);
+        return;
+      }
       const obsPage = await base44.entities.Observation.filter({ scan_id: scanId }, { limit: 100, fields: ['id'] });
       if (obsPage.items?.length) await base44.entities.Observation.deleteMany({ scan_id: scanId });
       const readPage = await base44.entities.Reading.filter({ scan_id: scanId }, { limit: 50, fields: ['id'] });
@@ -57,7 +65,6 @@ export default function MyHands() {
 
   useEffect(() => { load(); }, []);
 
-  const pairedScanIds = new Set(compatibilities.flatMap((c) => [c.scan_a_id, c.scan_b_id].filter(Boolean)));
   const history = [
     ...compatibilities.map((c) => ({ kind: 'pair', id: c.id, date: c.created_date, data: c })),
     ...scans.filter((s) => s.scan_type !== 'compatibility').map((s) => ({ kind: 'scan', id: s.id, date: s.created_date, data: s })),
@@ -110,6 +117,7 @@ export default function MyHands() {
                 <p className="text-[11px] text-muted-foreground">{new Date(item.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 <span className="text-[10px] text-primary">{item.data.status === 'completed' ? 'Analyse commune disponible' : item.data.status === 'accepted' ? 'Analyse en cours' : 'En attente de la seconde main'}</span>
               </div>
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setToDelete({ kind: 'pair', id: item.id }); }} className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" aria-label="Retirer cette compatibilité de mon historique"><Trash2 size={16} /></button>
             </Link>
           ) : (
             <Link key={item.id} to={item.data.scan_type === 'compatibility' ? `/compatibilite?scan=${encodeURIComponent(item.id)}` : `/lecture/${item.id}`} className="glass-card flex items-center gap-3 p-3 hover:border-primary/40 transition-colors group">
@@ -130,9 +138,9 @@ export default function MyHands() {
       <ConfirmDialog
         open={!!toDelete}
         onOpenChange={(o) => { if (!deleting) setToDelete(o ? toDelete : null); }}
-        title="Supprimer cette analyse ?"
-        description="Cette analyse et ses lectures, observations et rapports liés seront supprimés définitivement. Cette action est irréversible."
-        confirmLabel="Supprimer"
+        title={toDelete?.kind === "pair" ? "Retirer cette compatibilité ?" : "Supprimer cette analyse ?"}
+        description={toDelete?.kind === "pair" ? "Cette compatibilité disparaîtra uniquement de votre historique. L’autre personne conservera ses photos et son analyse." : "Cette analyse et ses lectures, observations et rapports liés seront supprimés définitivement. Cette action est irréversible."}
+        confirmLabel={toDelete?.kind === "pair" ? "Retirer de mon historique" : "Supprimer"}
         destructive
         loading={deleting}
         onConfirm={confirmDelete}
