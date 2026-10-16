@@ -115,7 +115,15 @@ export default function Compatibility() {
 
   const cancelInvitation = async () => {
     if (!compat) return;
-    try { setView('home'); setCompat(null); } catch (e) {}
+    setBusy(true);
+    setError('');
+    try {
+      const response = await base44.functions.invoke('cancelCompatibilityInvite', { compatibilityId: compat.id });
+      if (!response.data?.ok) throw new Error('cancel_failed');
+      setView('home');
+      setCompat(null);
+    } catch (e) { setError("Impossible d'annuler cette invitation. Réessayez."); }
+    finally { setBusy(false); }
   };
 
   const shareUrl = compat?.invitation_code ? `${window.location.origin}/compatibilite?code=${compat.invitation_code}` : "";
@@ -190,8 +198,9 @@ export default function Compatibility() {
           </div>
           <button onClick={share} className="btn-gold w-full py-3 flex items-center justify-center gap-2"><Share2 size={16} /> Partager l’invitation</button>
           <p className="text-[11px] text-muted-foreground">Code de secours : {compat.invitation_code}</p>
-          <button onClick={cancelInvitation} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
-            <X size={16} /> Quitter cette page
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <button onClick={cancelInvitation} disabled={busy} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
+            <X size={16} /> Annuler cette invitation
           </button>
         </div>
       )}
