@@ -17,6 +17,7 @@ export default function Scanner() {
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
+  const [photoAttempt, setPhotoAttempt] = useState(0);
   const urisRef = useRef({});
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function Scanner() {
       if (check.data?.acceptable !== true) {
         setUploading(false);
         setError(check.data?.reason || 'Photo non exploitable. Reprenez-la.');
+        setPhotoAttempt((n) => n + 1);
         return;
       }
       urisRef.current[parcours.hands[step]] = file_uri;
@@ -47,7 +49,8 @@ export default function Scanner() {
       }
     } catch (e) {
       setUploading(false);
-      setError("Échec de l'enregistrement de la photo. Réessayez.");
+      setError("La vérification de la photo est indisponible. Vous pouvez reprendre une photo et réessayer.");
+      setPhotoAttempt((n) => n + 1);
     }
   };
 
@@ -128,8 +131,9 @@ export default function Scanner() {
         </div>
       )}
 
+      {error && !uploading && !analyzing && <button type="button" className="btn-ghost-gold w-full py-3 mb-4" onClick={() => {setError("");setPhotoAttempt((n) => n + 1);}}>Reprendre une photo</button>}
       <CameraCapture
-        key={`${parcours.id}-${currentHand}`}
+        key={`${parcours.id}-${currentHand}-${photoAttempt}`}
         handLabel={currentHand === 'right' ? 'Main droite — paume vers le haut' : 'Main gauche — paume vers le haut'}
         onValidated={handleValidated}
       />
