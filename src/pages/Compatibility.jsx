@@ -26,6 +26,12 @@ export default function Compatibility() {
       const cPage = await base44.functions.invoke('listMyCompatibilities', {});
       const params = new URLSearchParams(window.location.search);
       if (!params.has('code')) {
+        const requestedId = params.get('id');
+        const requestedEntry = requestedId ? (cPage.data?.entries || []).find((entry) => entry.id === requestedId) : null;
+        if (requestedEntry && requestedEntry.status === 'completed' && requestedEntry.result_content) { setCompat(requestedEntry); setReadyNotice(false); setView('result'); }
+        else if (requestedEntry && ['pending', 'accepted'].includes(requestedEntry.status)) { setCompat(requestedEntry); setView('waiting'); }
+        else if (requestedId) { setError('Cette compatibilité est indisponible.'); setView('home'); }
+        else {
         const requestedScan = params.get('scan');
         const related = requestedScan ? (cPage.data?.entries || []).find((c) => c.scan_a_id === requestedScan || c.scan_b_id === requestedScan) : null;
         if (related && related.status === 'completed' && related.result_content) { setCompat(related); setReadyNotice(false); setView('result'); }
@@ -38,6 +44,7 @@ export default function Compatibility() {
         if (pending) { setCompat(pending); setView('waiting'); }
         else if (accepted) { setCompat(accepted); setView('waiting'); }
         else if (completed) { setCompat(completed); setReadyNotice(Boolean(completed.is_initiator)); setView('result'); }
+        }
         }
       }
     } catch (e) {}
