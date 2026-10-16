@@ -54,6 +54,22 @@ export default async function(req) {
       base44.asServiceRole.entities.Observation.filter({ scan_id: compat.scan_b_id }, { limit: 100 }),
     ]);
 
+    const reliable = (items) => (items || []).filter(o =>
+      o.hand === 'right' &&
+      !o.uncertain &&
+      Number(o.confidence) >= 0.55 &&
+      Array.isArray(o.coordinates) && o.coordinates.length >= 2 &&
+      typeof o.characteristics === 'string' && o.characteristics.trim().length >= 12
+    );
+    const observationsA = reliable(obsAPage.items);
+    const observationsB = reliable(obsBPage.items);
+    if (observationsA.length < 2 || observationsB.length < 2) {
+      return Response.json({
+        error: 'observations_insuffisantes',
+        message: 'Les lignes des deux mains ne sont pas assez visibles pour une comparaison. Reprenez les photos avec la paume ouverte et une lumière uniforme.'
+      }, { status: 422 });
+    }
+
     const summarize = (items, who) => {
       const list = items || [];
       if (!list.length) return `Main de ${who} : aucune ligne majeure clairement identifiée.`;
@@ -62,7 +78,7 @@ export default async function(req) {
       ).join('\n');
     };
 
-    const obsSummary = `Main de la première personne :\n${summarize(obsAPage.items, 'première personne')}\n\nMain de la seconde personne :\n${summarize(obsBPage.items, 'seconde personne')}`;
+    const obsSummary = `Main de la première personne :\n${summarize(observationsA, 'première personne')}\n\nMain de la seconde personne :\n${summarize(observationsB, 'seconde personne')}`;
 
     const schema = {
       type: 'object',
