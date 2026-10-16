@@ -118,6 +118,19 @@ export default function Compatibility() {
     }
   }, [loading, view]);
 
+  const retryAnalysis = async () => {
+    if (!compat || compat.status !== 'accepted') return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await base44.functions.invoke('analyzeCompatibility', { compatibility_id: compat.id });
+      if (response.data?.error) throw new Error(response.data.message || response.data.error);
+      const state = await base44.functions.invoke('getCompatibilityState', { compatibilityId: compat.id });
+      if (state.data?.compatibility?.status === 'completed') { setCompat(state.data.compatibility); setReadyNotice(true); setView('result'); }
+    } catch (e) { setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "L'analyse n'a pas pu aboutir."); }
+    finally { setBusy(false); }
+  };
+
   const cancelInvitation = async () => {
     if (!compat) return;
     setBusy(true);
@@ -207,6 +220,7 @@ export default function Compatibility() {
           {compat.status === 'pending' && <button onClick={cancelInvitation} disabled={busy} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
             <X size={16} /> Annuler cette invitation
           </button>}
+          {compat.status === 'accepted' && <button onClick={retryAnalysis} disabled={busy} className="btn-gold w-full py-3">{busy ? 'Analyse en cours…' : "Relancer l'analyse"}</button>}
           {compat.status === 'accepted' && <button onClick={() => { setView('home'); setCompat(null); }} className="btn-ghost-gold w-full py-3">Retour</button>}
         </div>
       )}
