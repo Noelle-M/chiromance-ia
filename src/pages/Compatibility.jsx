@@ -28,23 +28,23 @@ export default function Compatibility() {
       if (!params.has('code')) {
         const requestedId = params.get('id');
         const requestedEntry = requestedId ? (cPage.data?.entries || []).find((entry) => entry.id === requestedId) : null;
-        if (requestedEntry && requestedEntry.status === 'completed' && requestedEntry.result_content) { setCompat(requestedEntry); setReadyNotice(false); setView('result'); }
-        else if (requestedEntry && ['pending', 'accepted'].includes(requestedEntry.status)) { setCompat(requestedEntry); setView('waiting'); }
-        else if (requestedId) { setError('Cette compatibilité est indisponible.'); setView('home'); }
-        else {
-        const requestedScan = params.get('scan');
-        const related = requestedScan ? (cPage.data?.entries || []).find((c) => c.scan_a_id === requestedScan || c.scan_b_id === requestedScan) : null;
-        if (related && related.status === 'completed' && related.result_content) { setCompat(related); setReadyNotice(false); setView('result'); }
-        else if (related && ['pending', 'accepted'].includes(related.status)) { setCompat(related); setView('waiting'); }
-        else if (requestedScan) { setSelectedScan(requestedScan); setView('create'); }
-        else {
-        const pending = (cPage.data?.entries || []).find((c) => c.status === 'pending' && c.invitation_code);
-        const accepted = (cPage.data?.entries || []).find((c) => c.status === 'accepted');
-        const completed = (cPage.data?.entries || []).find((c) => c.status === 'completed' && c.result_content);
-        if (pending) { setCompat(pending); setView('waiting'); }
-        else if (accepted) { setCompat(accepted); setView('waiting'); }
-        else if (completed) { setCompat(completed); setReadyNotice(Boolean(completed.is_initiator)); setView('result'); }
-        }
+        if (requestedEntry && requestedEntry.status === 'completed' && requestedEntry.result_content) {setCompat(requestedEntry);setReadyNotice(false);setView('result');} else
+        if (requestedEntry && ['pending', 'accepted'].includes(requestedEntry.status)) {setCompat(requestedEntry);setView('waiting');} else
+        if (requestedId) {setError('Cette compatibilité est indisponible.');setView('home');} else
+        {
+          const requestedScan = params.get('scan');
+          const related = requestedScan ? (cPage.data?.entries || []).find((c) => c.scan_a_id === requestedScan || c.scan_b_id === requestedScan) : null;
+          if (related && related.status === 'completed' && related.result_content) {setCompat(related);setReadyNotice(false);setView('result');} else
+          if (related && ['pending', 'accepted'].includes(related.status)) {setCompat(related);setView('waiting');} else
+          if (requestedScan) {setSelectedScan(requestedScan);setView('create');} else
+          {
+            const pending = (cPage.data?.entries || []).find((c) => c.status === 'pending' && c.invitation_code);
+            const accepted = (cPage.data?.entries || []).find((c) => c.status === 'accepted');
+            const completed = (cPage.data?.entries || []).find((c) => c.status === 'completed' && c.result_content);
+            if (pending) {setCompat(pending);setView('waiting');} else
+            if (accepted) {setCompat(accepted);setView('waiting');} else
+            if (completed) {setCompat(completed);setReadyNotice(Boolean(completed.is_initiator));setView('result');}
+          }
         }
       }
     } catch (e) {}
@@ -56,8 +56,8 @@ export default function Compatibility() {
     const codeParam = params.get("code");
     const scanParam = params.get("scan");
     if (codeParam) sessionStorage.setItem('chiromancia_compat_invite', codeParam);
-    if (scanParam) { setSelectedScan(scanParam); if (!codeParam) setView("create"); }
-    if (codeParam) { setCode(codeParam); setView("accept"); }
+    if (scanParam) {setSelectedScan(scanParam);if (!codeParam) setView("create");}
+    if (codeParam) {setCode(codeParam);setView("accept");}
     load();
   }, []);
 
@@ -89,12 +89,12 @@ export default function Compatibility() {
     setError("");
     try {
       const scanId = selectedScan || scans[0]?.id;
-      if (!scanId) { setError("Sélectionnez un scan de votre main droite."); setBusy(false); return; }
+      if (!scanId) {setError("Sélectionnez un scan de votre main droite.");setBusy(false);return;}
       const response = await base44.functions.invoke('createCompatibilityInvite', { scanId });
       if (!response.data?.compatibility) throw new Error('invitation_failed');
       setCompat(response.data.compatibility);
       setView('waiting');
-    } catch (e) { setError("Impossible de créer l'invitation."); }
+    } catch (e) {setError("Impossible de créer l'invitation.");}
     setBusy(false);
   };
 
@@ -107,7 +107,7 @@ export default function Compatibility() {
     try {
       const scanFromCapture = new URLSearchParams(window.location.search).get('scan');
       const myScans = scanFromCapture ? { items: [{ id: scanFromCapture }] } : { items: [] };
-      if (!myScans.items?.length) { acceptingRef.current = false; setBusy(false); navigate(`/scanner?compatInvite=${encodeURIComponent(code.trim())}`); return; }
+      if (!myScans.items?.length) {acceptingRef.current = false;setBusy(false);navigate(`/scanner?compatInvite=${encodeURIComponent(code.trim())}`);return;}
       const accepted = await base44.functions.invoke('acceptCompatibilityInvite', { code: code.trim(), scanId: myScans.items[0].id });
       const c = accepted.data?.compatibility;
       if (!c) throw new Error('invitation_invalid');
@@ -121,7 +121,7 @@ export default function Compatibility() {
       sessionStorage.removeItem('chiromancia_compat_invite');
     } catch (e) {
       setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "Impossible de terminer l'analyse.");
-      if (acceptedCompatibility) { setCompat(acceptedCompatibility); setView('waiting'); sessionStorage.removeItem('chiromancia_compat_invite'); }
+      if (acceptedCompatibility) {setCompat(acceptedCompatibility);setView('waiting');sessionStorage.removeItem('chiromancia_compat_invite');}
     }
     setBusy(false);
     acceptingRef.current = false;
@@ -145,9 +145,9 @@ export default function Compatibility() {
       const response = await base44.functions.invoke('analyzeCompatibility', { compatibility_id: compat.id });
       if (response.data?.error) throw new Error(response.data.message || response.data.error);
       const state = await base44.functions.invoke('getCompatibilityState', { compatibilityId: compat.id });
-      if (state.data?.compatibility?.status === 'completed') { setCompat(state.data.compatibility); setReadyNotice(true); setView('result'); }
-    } catch (e) { setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "L'analyse n'a pas pu aboutir."); }
-    finally { setBusy(false); }
+      if (state.data?.compatibility?.status === 'completed') {setCompat(state.data.compatibility);setReadyNotice(true);setView('result');}
+    } catch (e) {setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "L'analyse n'a pas pu aboutir.");} finally
+    {setBusy(false);}
   };
 
   const cancelInvitation = async () => {
@@ -159,21 +159,21 @@ export default function Compatibility() {
       if (!response.data?.ok) throw new Error('cancel_failed');
       setView('home');
       setCompat(null);
-    } catch (e) { setError("Impossible d'annuler cette invitation. Réessayez."); }
-    finally { setBusy(false); }
+    } catch (e) {setError("Impossible d'annuler cette invitation. Réessayez.");} finally
+    {setBusy(false);}
   };
 
   const publicOrigin = import.meta.env.VITE_PUBLIC_APP_URL || (/^(https?:\/\/)(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.origin) ? '' : window.location.origin);
   const shareUrl = compat?.invitation_code && publicOrigin ? `${publicOrigin.replace(/\/$/, '')}/compatibilite?code=${encodeURIComponent(compat.invitation_code)}` : "";
   const copy = async () => {
-    try { await navigator.clipboard.writeText(shareUrl || compat?.invitation_code || ''); setCopied(true); setTimeout(() => setCopied(false), 1500); }
-    catch (e) { setError('Copie indisponible. Sélectionnez le lien pour le partager.'); }
+    try {await navigator.clipboard.writeText(shareUrl || compat?.invitation_code || '');setCopied(true);setTimeout(() => setCopied(false), 1500);}
+    catch (e) {setError('Copie indisponible. Sélectionnez le lien pour le partager.');}
   };
   const share = async () => {
-    if (!shareUrl) { await copy(); return; }
+    if (!shareUrl) {await copy();return;}
     if (navigator.share) {
-      try { await navigator.share({ title: 'Invitation Chiromancia', text: 'Comparons nos mains droites sur Chiromancia', url: shareUrl }); return; }
-      catch (e) { if (e.name === 'AbortError') return; }
+      try {await navigator.share({ title: 'Invitation Chiromancia', text: 'Comparons nos mains droites sur Chiromancia', url: shareUrl });return;}
+      catch (e) {if (e.name === 'AbortError') return;}
     }
     await copy();
   };
@@ -188,34 +188,34 @@ export default function Compatibility() {
         <p className="text-sm text-muted-foreground mt-1">Comparez vos mains droites : affinités, amour, amitié, travail et projets communs.</p>
       </header>
 
-      {view === 'home' && (
-        <div className="space-y-3">
+      {view === 'home' &&
+      <div className="space-y-3">
           <button onClick={() => setView('create')} className="btn-gold w-full py-3">Inviter une personne</button>
           <button onClick={() => setView('accept')} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
             <Link2 size={16} /> J'ai un code d'invitation
           </button>
-          <p className="text-[11px] text-muted-foreground text-center mt-4 leading-relaxed">
+          <p className="text-[11px] text-muted-foreground text-center mt-4 leading-relaxed hidden">
             Gratuit. Cette lecture symbolique explore différentes formes de relations, sans prédire leur réussite.
           </p>
         </div>
-      )}
+      }
 
-      {view === 'create' && (
-        <div className="space-y-4">
+      {view === 'create' &&
+      <div className="space-y-4">
           <h2 className="font-display text-xl">Choisissez votre main droite</h2>
-          {scans.length === 0 && !selectedScan ? (
-            <p className="text-sm text-muted-foreground">Aucun scan de compatibilité. Allez dans Mes mains pour scanner votre main droite (parcours Compatibilité).</p>
-          ) : (
-            <div className="space-y-2">
-              {scans.map((s, i) => (
-                <button key={s.id} onClick={() => setSelectedScan(s.id)} className={`glass-card w-full text-left p-3 flex items-center gap-3 ${selectedScan === s.id ? 'border-primary' : ''}`}>
+          {scans.length === 0 && !selectedScan ?
+        <p className="text-sm text-muted-foreground">Aucun scan de compatibilité. Allez dans Mes mains pour scanner votre main droite (parcours Compatibilité).</p> :
+
+        <div className="space-y-2">
+              {scans.map((s, i) =>
+          <button key={s.id} onClick={() => setSelectedScan(s.id)} className={`glass-card w-full text-left p-3 flex items-center gap-3 ${selectedScan === s.id ? 'border-primary' : ''}`}>
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm">{i + 1}</div>
                   <span className="text-sm">{new Date(s.created_date).toLocaleDateString('fr-FR')}</span>
                   {selectedScan === s.id && <Check size={16} className="ml-auto text-primary" />}
                 </button>
-              ))}
-            </div>
           )}
+            </div>
+        }
           {selectedScan && !scans.some((s) => s.id === selectedScan) && <p className="text-sm text-primary">Votre main droite est prête. Envoyez maintenant une invitation.</p>}
           <button onClick={createInvitation} disabled={busy} className="btn-gold w-full py-3 flex items-center justify-center gap-2">
             {busy ? <Loader2 className="animate-spin" size={16} /> : <Share2 size={16} />} Créer l'invitation
@@ -223,10 +223,10 @@ export default function Compatibility() {
           {error && <p className="text-xs text-destructive text-center">{error}</p>}
           <button onClick={() => setView('home')} className="text-xs text-muted-foreground w-full">Retour</button>
         </div>
-      )}
+      }
 
-      {view === 'waiting' && compat && (
-        <div className="space-y-4 text-center">
+      {view === 'waiting' && compat &&
+      <div className="space-y-4 text-center">
           <Loader2 className="animate-spin text-primary mx-auto" size={28} />
           <h2 className="font-display text-xl">{compat.status === 'accepted' ? 'Invitation acceptée — analyse en cours' : 'En attente de votre invité'}</h2>
           <p className="text-sm text-muted-foreground">{compat.status === 'accepted' ? 'Votre invité a accepté. La lecture commune sera disponible ici.' : 'Partagez ce lien à une seule personne.'}</p>
@@ -242,19 +242,19 @@ export default function Compatibility() {
             <X size={16} /> Annuler cette invitation
           </button>}
           {compat.status === 'accepted' && <button onClick={retryAnalysis} disabled={busy} className="btn-gold w-full py-3">{busy ? 'Analyse en cours…' : "Relancer l'analyse"}</button>}
-          {compat.status === 'accepted' && <button onClick={() => { setView('home'); setCompat(null); }} className="btn-ghost-gold w-full py-3">Retour</button>}
+          {compat.status === 'accepted' && <button onClick={() => {setView('home');setCompat(null);}} className="btn-ghost-gold w-full py-3">Retour</button>}
         </div>
-      )}
+      }
 
-      {view === 'accept' && (
-        <div className="space-y-4">
+      {view === 'accept' &&
+      <div className="space-y-4">
           <h2 className="font-display text-xl">Entrez le code d'invitation</h2>
           <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Code d’invitation"
-            className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground"
-          />
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Code d’invitation"
+          className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground" />
+        
           <p className="text-sm text-muted-foreground">Après connexion, votre main droite sera photographiée pour être comparée à celle de la personne qui vous invite.</p>
           <button onClick={acceptWithCode} disabled={busy} className="btn-gold w-full py-3 flex items-center justify-center gap-2">
             {busy ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />} Accepter et participer
@@ -262,17 +262,17 @@ export default function Compatibility() {
           {error && <p className="text-xs text-destructive text-center">{error}</p>}
           <button onClick={() => setView('home')} className="text-xs text-muted-foreground w-full">Retour</button>
         </div>
-      )}
+      }
 
-      {view === 'result' && compat && (
-        <div className="space-y-4">
+      {view === 'result' && compat &&
+      <div className="space-y-4">
           {readyNotice && <div role="status" className="glass-card p-4 text-center"><p className="text-primary font-display text-lg">Votre analyse de compatibilité est prête !</p><p className="text-sm mt-2">Votre invité a accepté et la lecture de vos deux mains est disponible.</p><button onClick={() => setReadyNotice(false)} className="text-primary text-xs mt-3">Masquer</button></div>}
           <div className="gold-divider" />
           <h2 className="font-display text-2xl text-primary text-center">Votre lecture de compatibilité</h2>
           <ReadingMarkdown>{compat.result_content || "Résultat en cours de finalisation."}</ReadingMarkdown>
           <button onClick={() => setView('home')} className="btn-ghost-gold w-full py-3">Nouvelle compatibilité</button>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
