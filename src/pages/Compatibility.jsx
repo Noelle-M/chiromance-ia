@@ -27,8 +27,10 @@ export default function Compatibility() {
       const params = new URLSearchParams(window.location.search);
       if (!params.has('code') && !params.has('scan')) {
         const pending = (cPage.data?.entries || []).find((c) => c.status === 'pending' && c.invitation_code);
+        const accepted = (cPage.data?.entries || []).find((c) => c.status === 'accepted');
         const completed = (cPage.data?.entries || []).find((c) => c.status === 'completed' && c.result_content);
         if (pending) { setCompat(pending); setView('waiting'); }
+        else if (accepted) { setCompat(accepted); setView('waiting'); }
         else if (completed) { setCompat(completed); setReadyNotice(true); setView('result'); }
       }
     } catch (e) {}
@@ -48,7 +50,7 @@ export default function Compatibility() {
   // Participant A: poll the invitation until the invitee accepts and the reading is ready.
   useEffect(() => {
     if (view !== "waiting" || !compat) return;
-    const id = setInterval(async () => {
+    const check = async () => {
       try {
         const state = await base44.functions.invoke('getCompatibilityState', { compatibilityId: compat.id });
         const fresh = state.data?.compatibility;
@@ -62,7 +64,9 @@ export default function Compatibility() {
           setCompat(null);
         }
       } catch (e) {}
-    }, 5000);
+    };
+    check();
+    const id = setInterval(check, 5000);
     return () => clearInterval(id);
   }, [view, compat]);
 
@@ -93,12 +97,13 @@ export default function Compatibility() {
       const c = accepted.data?.compatibility;
       if (!c) throw new Error('invitation_invalid');
       // Generate the compatibility reading server-side (service role LLM).
-      await base44.functions.invoke('analyzeCompatibility', { compatibility_id: c.id });
+      const analysis = await base44.functions.invoke('analyzeCompatibility', { compatibility_id: c.id });
+      if (analysis.data?.error) throw new Error(analysis.data.message || analysis.data.error);
       const done = await base44.functions.invoke('getCompatibilityState', { compatibilityId: c.id });
       setCompat(done.data.compatibility);
       setView(done.data.compatibility.status === 'completed' ? 'result' : 'waiting');
       sessionStorage.removeItem('chiromancia_compat_invite');
-    } catch (e) { setError("Impossible d'accepter l'invitation."); }
+    } catch (e) { setError(e?.response?.data?.message || e?.response?.data?.error || e.message || "Impossible de terminer l'analyse."); }
     setBusy(false);
     acceptingRef.current = false;
   };
@@ -190,8 +195,8 @@ export default function Compatibility() {
       {view === 'waiting' && compat && (
         <div className="space-y-4 text-center">
           <Loader2 className="animate-spin text-primary mx-auto" size={28} />
-          <h2 className="font-display text-xl">En attente de votre invité</h2>
-          <p className="text-sm text-muted-foreground">Partagez ce lien à une seule personne.</p>
+          <h2 className="font-display text-xl">{compat.status === 'accepted' ? 'Invitation acceptée — analyse en cours' : 'En attente de votre invité'}</h2>
+          <p className="text-sm text-muted-foreground">{compat.status === 'accepted' ? 'Votre invité a accepté. La lecture commune sera disponible ici.' : 'Partagez ce lien à une seule personne.'}</p>
           <div className="glass-card p-3 flex items-center gap-2">
             <span className="text-xs text-primary truncate flex-1 text-left">{shareUrl}</span>
             <button onClick={copy} className="text-primary">{copied ? <Check size={16} /> : <Copy size={16} />}</button>
@@ -199,9 +204,10 @@ export default function Compatibility() {
           <button onClick={share} className="btn-gold w-full py-3 flex items-center justify-center gap-2"><Share2 size={16} /> Partager l’invitation</button>
           <p className="text-[11px] text-muted-foreground">Code de secours : {compat.invitation_code}</p>
           {error && <p className="text-xs text-destructive">{error}</p>}
-          <button onClick={cancelInvitation} disabled={busy} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
+          {compat.status === 'pending' && <button onClick={cancelInvitation} disabled={busy} className="btn-ghost-gold w-full py-3 flex items-center justify-center gap-2">
             <X size={16} /> Annuler cette invitation
-          </button>
+          </button>}
+          {compat.status === 'accepted' && <button onClick={() => { setView('home'); setCompat(null); }} className="btn-ghost-gold w-full py-3">Retour</button>}
         </div>
       )}
 
@@ -211,7 +217,7 @@ export default function Compatibility() {
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Code à 10 caractères"
+            placeholder="Code d’invitation"
             className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground"
           />
           <p className="text-sm text-muted-foreground">Après connexion, votre main droite sera photographiée pour être comparée à celle de la personne qui vous invite.</p>
