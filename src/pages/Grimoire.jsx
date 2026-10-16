@@ -87,50 +87,17 @@ export default function Grimoire() {
         </div>
       ) : (
         <div className="space-y-5">
-          {entries.map(({ scan, observations, reading }) => (
-            <div key={scan.id} className="glass-card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] text-muted-foreground">
-                  {new Date(scan.created_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                </span>
-                <div className="flex items-center gap-3">
-                  <Link to={scan.scan_type === "compatibility" ? "/compatibilite" : `/lecture/${scan.id}`} className="text-[11px] text-primary underline">{scan.scan_type === "compatibility" ? "Voir la compatibilité" : "Lire la consultation"}</Link>
-                  <button type="button" aria-label="Supprimer cette entrée" onClick={() => setToDelete({ id: scan.id, scan_type: scan.scan_type })} className="text-muted-foreground hover:text-destructive p-1"><Trash2 size={16} /></button>
-                </div>
+          {entries.map(({ scan, observations }) => (
+            <div key={scan.id} className="glass-card p-3 flex items-center gap-3">
+              <div className="w-16 h-20 shrink-0 overflow-hidden rounded-lg">
+                <AnnotatedThumb uri={scan.right_hand_photo || scan.left_hand_photo} observations={observations} label="Main" compact />
               </div>
-
-              <div className="flex gap-3 mb-3">
-                {scan.right_hand_photo && (
-                  <AnnotatedThumb uri={scan.right_hand_photo} observations={observations.filter((o) => o.hand === "right")} label="Droite" />
-                )}
-                {scan.left_hand_photo && (
-                  <AnnotatedThumb uri={scan.left_hand_photo} observations={observations.filter((o) => o.hand === "left")} label="Gauche" />
-                )}
-              </div>
-
-              <h3 className="font-display text-base text-primary/90 mb-1.5">Lignes identifiées</h3>
-              {observations.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Aucune ligne majeure identifiée.</p>
-              ) : (
-                <ul className="space-y-1 mb-3">
-                  {dedupeLines(observations).map((o) => (
-                    <li key={o.hand + o.line_name} className="text-xs flex items-start gap-2">
-                      <span className="text-primary mt-0.5">◆</span>
-                      <span>
-                        <span className="text-foreground">{o.line_label || LINE_LABELS[o.line_name] || o.line_name}</span>
-                        {o.uncertain && <span className="text-muted-foreground"> · incertain</span>}
-                        {o.characteristics && <span className="text-muted-foreground"> — {o.characteristics}</span>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {reading && (
-                <div className="mt-2 border-t border-border/50 pt-3">
-                  <ReadingMarkdown>{excerpt(reading.summary || reading.free_content)}</ReadingMarkdown>
-                </div>
-              )}
+              <Link to={scan.scan_type === "compatibility" ? "/compatibilite" : `/lecture/${scan.id}`} className="flex-1 min-w-0">
+                <p className="font-display text-base">{scan.scan_type === "full" ? "Lecture complète" : scan.scan_type === "quick" ? "Lecture rapide" : "Main de compatibilité"}</p>
+                <p className="text-[11px] text-muted-foreground">{new Date(scan.created_date).toLocaleDateString("fr-FR")}</p>
+                <p className="text-[11px] text-primary">{observations.length ? `${dedupeLines(observations).length} lignes identifiées` : "Voir la consultation"}</p>
+              </Link>
+              <button type="button" aria-label="Supprimer cette entrée" onClick={() => setToDelete({ id: scan.id, scan_type: scan.scan_type })} className="p-2 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
             </div>
           ))}
         </div>
@@ -160,7 +127,7 @@ function excerpt(text) {
   return firstPara.length > 320 ? firstPara.slice(0, 320).trim() + "…" : firstPara;
 }
 
-function AnnotatedThumb({ uri, observations, label }) {
+function AnnotatedThumb({ uri, observations, label, compact = false }) {
   const [url, setUrl] = useState(null);
   useEffect(() => {
     (async () => {
@@ -172,8 +139,8 @@ function AnnotatedThumb({ uri, observations, label }) {
   }, [uri]);
 
   return (
-    <div className="flex-1">
-      <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-black/40 border border-border/50">
+    <div className={compact ? "w-full h-full" : "flex-1"}>
+      <div className={compact ? "relative w-full h-full rounded-lg overflow-hidden bg-black/40 border border-border/50" : "relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-black/40 border border-border/50"}>
         {url ? (
           <>
             <img src={url} alt={`main ${label}`} className="absolute inset-0 w-full h-full object-cover" />
@@ -195,7 +162,7 @@ function AnnotatedThumb({ uri, observations, label }) {
           <div className="absolute inset-0 flex items-center justify-center"><Hand size={18} className="text-muted-foreground" /></div>
         )}
       </div>
-      <p className="text-[10px] text-muted-foreground text-center mt-1">{label}</p>
+      {!compact && <p className="text-[10px] text-muted-foreground text-center mt-1">{label}</p>}
     </div>
   );
 }
