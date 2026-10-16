@@ -86,7 +86,7 @@ export default function MyHands() {
       ) : (
         <div className="space-y-3">
           {scans.map((s) => (
-            <Link key={s.id} to={`/lecture/${s.id}`} className="glass-card flex items-center gap-3 p-3 hover:border-primary/40 transition-colors group">
+            <Link key={s.id} to={s.scan_type === 'compatibility' ? `/compatibilite?scan=${encodeURIComponent(s.id)}` : `/lecture/${s.id}`} className="glass-card flex items-center gap-3 p-3 hover:border-primary/40 transition-colors group">
               <div className="w-14 h-14 rounded-lg overflow-hidden bg-black/40 shrink-0 flex items-center justify-center">
                 {s.right_hand_photo ? <PalmThumb uri={s.right_hand_photo} /> : <Hand size={18} className="text-muted-foreground" />}
               </div>
@@ -95,7 +95,7 @@ export default function MyHands() {
                 <p className="text-[11px] text-muted-foreground">
                   {new Date(s.created_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
-                <StatusBadge status={s.status} />
+                {s.scan_type === 'compatibility' ? <span className="text-[10px] text-primary">Voir la compatibilité</span> : <StatusBadge status={s.status} />}
               </div>
               <button
                 onClick={(e) => askDelete(e, s.id)}
