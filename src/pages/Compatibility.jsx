@@ -24,8 +24,9 @@ export default function Compatibility() {
   const load = async () => {
     setLoading(true);
     try {
-      const page = await base44.entities.Scan.filter({ scan_type: 'compatibility', status: 'analyzed' }, { sort: '-created_date', limit: 20, fields: ['id', 'created_date'] });
-      setScans(page.items || []);
+      const page = await base44.entities.Scan.filter({ scan_type: 'compatibility', status: 'analyzed' }, { sort: '-created_date', limit: 20, fields: ['id', 'created_by_id', 'right_hand_photo', 'created_date'] });
+      const currentUser = await base44.auth.me();
+      setScans((page.items || []).filter((scan) => scan.created_by_id === currentUser.id));
       const cPage = await base44.functions.invoke('listMyCompatibilities', {});
       const params = new URLSearchParams(window.location.search);
       if (!params.has('code')) {
@@ -212,7 +213,7 @@ export default function Compatibility() {
         <div className="space-y-2">
               {scans.map((s, i) =>
           <button key={s.id} onClick={() => setSelectedScan(s.id)} className={`glass-card w-full text-left p-3 flex items-center gap-3 ${selectedScan === s.id ? 'border-primary' : ''}`}>
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm">{i + 1}</div>
+                  <CompatibilityPalmThumb uri={s.right_hand_photo} />
                   <span className="text-sm">{new Date(s.created_date).toLocaleDateString('fr-FR')}</span>
                   {selectedScan === s.id && <Check size={16} className="ml-auto text-primary" />}
                 </button>
@@ -306,6 +307,24 @@ function CompatibilityAccordion({ content, openSection, onToggle }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+
+function CompatibilityPalmThumb({ uri }) {
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let active = true;
+    if (!uri) return;
+    base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri })
+      .then((result) => { if (active) setUrl(result.signed_url); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [uri]);
+  return (
+    <div className="w-14 h-16 shrink-0 rounded-lg overflow-hidden border border-border/50 bg-primary/10 flex items-center justify-center">
+      {url ? <img src={url} alt="Votre main droite" className="w-full h-full object-cover" /> : <span className="text-primary text-xs">Main</span>}
     </div>
   );
 }
